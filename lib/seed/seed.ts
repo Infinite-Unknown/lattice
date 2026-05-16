@@ -1,4 +1,7 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+// Next.js loads .env.local automatically; for this standalone tsx script we load it explicitly.
+dotenv.config({ path: '.env.local' });
+dotenv.config(); // also picks up .env if present
 import { upsertActor } from '@/lib/data/actors';
 import { upsertRelationship } from '@/lib/data/relationships';
 import { upsertOutcome } from '@/lib/data/outcomes';
