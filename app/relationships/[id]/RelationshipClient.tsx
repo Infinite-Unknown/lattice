@@ -17,10 +17,12 @@ export default function RelationshipClient({ id }: { id: string }) {
   const { can, user } = useAuth();
   const canRun = can('steward.run');
   const canEditPolicy = can('policy.write');
+  const canWriteRelationship = can('relationship.write');
   const [data, setData] = useState<Data | null>(null);
   const [escalation, setEscalation] = useState('');
   const [sunset, setSunset] = useState('');
   const [tab, setTab] = useState<'timeline' | 'steward' | 'policy'>('timeline');
+  const [stateBusy, setStateBusy] = useState(false);
 
   const [notFound, setNotFound] = useState(false);
 
@@ -43,6 +45,20 @@ export default function RelationshipClient({ id }: { id: string }) {
     await fetch('/api/steward/tick', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ relationshipId: id }) });
     refresh();
   }
+  async function transitionState(next: 'active' | 'tapered' | 'closed', confirmMsg: string) {
+    if (!confirm(confirmMsg)) return;
+    setStateBusy(true);
+    try {
+      await fetch(`/api/relationships/${id}/state`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ state: next }),
+      });
+      await refresh();
+    } finally {
+      setStateBusy(false);
+    }
+  }
 
   if (notFound) return (
     <div className="text-neutral-400 max-w-xl">
@@ -53,14 +69,76 @@ export default function RelationshipClient({ id }: { id: string }) {
   );
   if (!data) return <div className="text-neutral-500">Loading…</div>;
 
+  const state = data.relationship.state;
+  const stateColor =
+    state === 'active' ? 'text-emerald-400' :
+    state === 'escalated' ? 'text-rose-400' :
+    state === 'tapered' ? 'text-neutral-400' :
+    state === 'closed' ? 'text-neutral-500' :
+    'text-amber-400';
+
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2 font-medium">
-        Managed autonomously by a Steward agent
-      </div>
-      <h1 className="text-2xl font-semibold mb-1">{data.parties.map(p => p.name).join(' ↔ ')}</h1>
-      <div className="text-sm text-neutral-400 mb-4">
-        {data.relationship.type} · state: <span className="text-emerald-400">{data.relationship.state}</span> · focus: {data.relationship.focus.join(', ')} · cadence: {data.relationship.cadence}
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2 font-medium">
+            Managed autonomously by a Steward agent
+          </div>
+          <h1 className="text-2xl font-semibold mb-1">{data.parties.map(p => p.name).join(' ↔ ')}</h1>
+          <div className="text-sm text-neutral-400">
+            {data.relationship.type} · state: <span className={stateColor}>{state}</span> · focus: {data.relationship.focus.join(', ') || '—'} · cadence: {data.relationship.cadence}
+          </div>
+        </div>
+
+        {canWriteRelationship && (
+          <div className="flex gap-2 flex-wrap justify-end">
+            {state === 'active' && (
+              <>
+                <button
+                  onClick={() => transitionState('tapered', `Taper this relationship? It will keep history but mark engagement as winding down.`)}
+                  disabled={stateBusy}
+                  className="px-3 py-1.5 rounded text-sm border border-neutral-700 hover:bg-neutral-900 disabled:opacity-50"
+                >
+                  Taper
+                </button>
+                <button
+                  onClick={() => transitionState('closed', `Close this relationship? You can reopen it later.`)}
+                  disabled={stateBusy}
+                  className="px-3 py-1.5 rounded text-sm border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-50"
+                >
+                  Close
+                </button>
+              </>
+            )}
+            {state === 'tapered' && (
+              <>
+                <button
+                  onClick={() => transitionState('active', `Reactivate this tapered relationship?`)}
+                  disabled={stateBusy}
+                  className="px-3 py-1.5 rounded text-sm border border-emerald-800/60 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50"
+                >
+                  Reactivate
+                </button>
+                <button
+                  onClick={() => transitionState('closed', `Close this relationship?`)}
+                  disabled={stateBusy}
+                  className="px-3 py-1.5 rounded text-sm border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-50"
+                >
+                  Close
+                </button>
+              </>
+            )}
+            {state === 'closed' && (
+              <button
+                onClick={() => transitionState('active', `Reopen this closed relationship?`)}
+                disabled={stateBusy}
+                className="px-3 py-1.5 rounded text-sm border border-emerald-800/60 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50"
+              >
+                Reopen
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2 mb-4">

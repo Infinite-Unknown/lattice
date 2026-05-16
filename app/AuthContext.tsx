@@ -16,7 +16,8 @@ export type UserPublic = {
 export type Permission =
   | 'graph.read' | 'inbox.read' | 'relationship.read'
   | 'steward.run' | 'cartographer.run' | 'approve.write'
-  | 'policy.write' | 'iam.manage' | 'seed.run';
+  | 'policy.write' | 'actor.write' | 'relationship.write'
+  | 'iam.manage' | 'seed.run';
 
 type MeResponse = {
   user: UserPublic | null;

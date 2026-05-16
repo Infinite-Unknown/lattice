@@ -2,6 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../AuthContext';
+import AddActorModal from './AddActorModal';
+import AddRelationshipModal from './AddRelationshipModal';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
@@ -66,19 +69,56 @@ const RELATIONSHIP_TYPE_LABEL: Record<string, string> = {
 };
 
 export default function GraphClient() {
+  const { can } = useAuth();
+  const canWriteActor = can('actor.write');
+  const canWriteRelationship = can('relationship.write');
   const [data, setData] = useState<GraphData | null>(null);
   const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
+  const [showAddActor, setShowAddActor] = useState(false);
+  const [showAddRelationship, setShowAddRelationship] = useState(false);
   const router = useRouter();
   const fgRef = useRef<any>(null);
 
-  useEffect(() => {
-    fetch('/api/graph', { cache: 'no-store' }).then(r => r.json()).then(setData);
-  }, []);
+  async function refresh() {
+    const r = await fetch('/api/graph', { cache: 'no-store' });
+    setData(await r.json());
+  }
+
+  useEffect(() => { refresh(); }, []);
 
   if (!data) return <div className="text-neutral-500 py-8">Loading graph…</div>;
 
   return (
     <div className="space-y-4">
+      {/* Admin actions */}
+      {(canWriteActor || canWriteRelationship) && (
+        <div className="flex justify-end gap-2">
+          {canWriteActor && (
+            <button
+              onClick={() => setShowAddActor(true)}
+              className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+            >
+              + Add actor
+            </button>
+          )}
+          {canWriteRelationship && (
+            <button
+              onClick={() => setShowAddRelationship(true)}
+              className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+            >
+              + Add relationship
+            </button>
+          )}
+        </div>
+      )}
+
+      <AddActorModal open={showAddActor} onClose={() => setShowAddActor(false)} onCreated={refresh} />
+      <AddRelationshipModal
+        open={showAddRelationship}
+        onClose={() => setShowAddRelationship(false)}
+        onCreated={refresh}
+        actors={data.nodes}
+      />
       {/* Graph canvas */}
       <div className="border border-neutral-800 rounded-lg relative overflow-hidden" style={{ height: '60vh' }}>
         <ForceGraph2D
