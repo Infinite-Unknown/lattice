@@ -326,21 +326,7 @@ FIREBASE_ADMIN_CREDENTIALS='{"type":"service_account","project_id":"...","privat
 - Authentication → Sign-in method → **Email/Password = enabled**
 - Firestore Database → Create database (Native mode, test mode for dev)
 
-### 4) Seed demo data
-
-Two seed options:
-
-```bash
-# Default — minimal single-tenant seed
-# Refuses to run if multiple accounts exist; pass SEED_ACCOUNT_ID to target one
-npm run seed
-
-# Demo reset — wipes everything, provisions 4 root accounts + 3 IAM users
-# with rich, recognisable Malaysian ecosystem data
-npm run reset
-```
-
-### 5) Run
+### 4) Run
 
 ```bash
 npm run dev
@@ -348,47 +334,9 @@ npm run dev
 
 Open http://localhost:3000.
 
----
+### 5) Seed (optional)
 
-## 🎬 Demo Flow
-
-After `npm run reset` the database is provisioned with **4 root accounts** and **3 IAM users under Billy's tenant**, all with the same password `01234567`.
-
-### Root accounts (sign in with email + password)
-
-| Email | Account | Story |
-|---|---|---|
-| `jeff@gmail.com` | Hack Garage Accelerator | Healthy seed accelerator — Pulse just landed a $40k MRR contract |
-| `bob@gmail.com` | Sunrise Ventures | Corporate VC with one **escalated** mentorship — QuantumCore mid-burnout |
-| `larry@gmail.com` | UTM Innovation Hub | University tech-transfer with a **dormant partner** (KPMG, no recent outcomes) |
-| `billy@gmail.com` ★ | **Malaysia Tech Ecosystem** | Showcase: MDEC GAIN, 42 KL, Sunway iLabs, APU, GDG KL, Carsome, Aerodyne — 12 entities, 8 relationships, 10 outcomes |
-
-### Billy's IAM users (sign in with account name + username + password)
-
-Account name: **`Malaysia Tech Ecosystem`**
-
-| Username | Role | What they can do |
-|---|---|---|
-| `faiz-hassan` | **admin** | Full operational access except IAM management |
-| `jeff-sandhu` | **approver** | Run agents, approve proposals; cannot edit policy or actors |
-| `analyst-team` | **viewer** | Read-only — no agent runs, no approvals |
-
-### The live demo walk (90 seconds)
-
-1. **Sign in as `billy@gmail.com`** → `/dashboard` shows the entity / relationship / decision / outcome stat strip with the count animating up
-2. **Click `Graph`** → 12 entities in a force-directed layout. Cheryl Yeoh's edge to Naluri is amber-vermillion (`escalated`); Carsome's edge to MDEC GAIN is dotted (`tapered`, alumni status); GDG KL ↔ MDEC GAIN flowing emerald particles (`active`).
-3. **Click any active edge** → relationship detail. See timeline, Steward log, policy editor (YAML).
-4. **Click `Run Steward tick`** → Gemini reasons live. JSON streams back. Prose uses entity names. Citations land as chips below.
-5. **Edit the escalation policy** (`nps_below: 7` → `nps_below: 8`), save, tick again → reasoning reflects the new threshold. *This is the policy-edit moment.*
-6. **Click `Agents` → Cartographer tab → Run scan** → 1-2 gaps surface. Expect at least:
-   - `over_allocation` flagging Cheryl Yeoh (5/4 capacity)
-   - `dormant_partner` flagging APU (no outcomes on the 42 KL edge)
-7. **Approve a gap** → persistent modal shows the new relationship materialised with the model's pre-committed focus + cadence. Back to `/graph` — new edge visible.
-8. **Sign out → sign in as IAM `analyst-team`** → all action buttons disabled. `Read-only role` banner. RBAC enforced.
-
-### Tagline
-
-> *Relationships that run themselves. An ecosystem that completes itself.*
+`npm run seed` populates an existing account with a small ecosystem fixture. For the prepared 4-tenant demo state with IAM users and the showcase Malaysia ecosystem, see [`DEMO.md`](DEMO.md).
 
 ---
 
