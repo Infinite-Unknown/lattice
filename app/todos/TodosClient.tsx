@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../AuthContext';
 import Spinner from '../components/Spinner';
+import { SkeletonRows } from '../components/Skeleton';
 import { humaniseLabel } from '@/lib/format';
 import DispatchModal, { type DispatchChannel } from './DispatchModal';
 
@@ -124,7 +125,7 @@ export default function TodosClient() {
       </div>
 
       {toast && (
-        <div className="mb-4 p-3 rounded border border-emerald-800/60 bg-emerald-950/30 text-sm text-emerald-200">
+        <div className="mb-4 p-3 rounded border border-emerald-800/60 bg-emerald-950/30 text-sm text-emerald-200 animate-fade-in">
           {toast}
         </div>
       )}
@@ -133,7 +134,7 @@ export default function TodosClient() {
       )}
 
       <div className="space-y-3">
-        {!todos && <div className="text-neutral-500 text-sm">Loading…</div>}
+        {!todos && <SkeletonRows count={3} />}
         {todos && filtered?.length === 0 && (
           <div className="border border-neutral-800 rounded p-6 text-sm text-neutral-500 text-center">
             {tab === 'open'

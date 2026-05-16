@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
 
 type AuditEntry = {
   id: string;
@@ -95,8 +96,10 @@ export default function AuditClient() {
         <div className="text-sm text-rose-300 border border-rose-900 bg-rose-950/30 rounded p-2 mb-4">{error}</div>
       )}
 
+      {!entries ? (
+        <SkeletonRows count={5} />
+      ) : (
       <div className="border border-neutral-800 rounded-lg divide-y divide-neutral-800">
-        {!entries && <div className="p-4 text-neutral-500 text-sm">Loading…</div>}
         {entries && entries.length === 0 && (
           <div className="p-4 text-neutral-500 text-sm">No audit entries yet. Perform an admin action (approve a Steward proposal, create an actor, transition state) to populate this log.</div>
         )}
@@ -120,6 +123,7 @@ export default function AuditClient() {
           </div>
         ))}
       </div>
+      )}
 
       <div className="text-xs text-neutral-500 mt-4">
         Showing the latest {entries?.length ?? 0} entries · filter applied: {filter}

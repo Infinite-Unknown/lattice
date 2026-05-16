@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import Spinner from '../components/Spinner';
+import { SkeletonRows } from '../components/Skeleton';
 import { CitationChipList, type ChipCitation } from '../components/CitationChip';
 import { humaniseLabel } from '@/lib/format';
 import ApprovalResultModal, { type ApprovalResult } from './ApprovalResultModal';
@@ -176,7 +177,7 @@ export default function InboxClient() {
     }
   }
 
-  if (!data) return <div className="text-neutral-500">Loading…</div>;
+  if (!data) return <SkeletonRows count={4} />;
 
   return (
     <div>
@@ -215,7 +216,7 @@ export default function InboxClient() {
       )}
 
       {toast && (
-        <div className={`mb-4 p-3 rounded border text-sm flex items-start justify-between gap-3 ${
+        <div className={`mb-4 p-3 rounded border text-sm flex items-start justify-between gap-3 animate-fade-in ${
           toast.kind === 'success' ? 'border-emerald-800/60 bg-emerald-950/30 text-emerald-200' :
           toast.kind === 'error' ? 'border-rose-900 bg-rose-950/30 text-rose-200' :
           'border-neutral-700 bg-neutral-900 text-neutral-200'
