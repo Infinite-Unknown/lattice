@@ -54,11 +54,14 @@ export async function writeAuditEntry(
 }
 
 export async function listAuditEntries(accountId: string, limit = 100): Promise<AuditLogEntry[]> {
+  // We deliberately don't combine where(account_id) + orderBy(timestamp) here:
+  // Firestore would require a composite index for that pair, and audit log
+  // volume is small enough that sorting in memory is fine.
   const snap = await getAdminDb()
     .collection(COL)
     .where('account_id', '==', accountId)
-    .orderBy('timestamp', 'desc')
-    .limit(limit)
     .get();
-  return snap.docs.map(d => d.data() as AuditLogEntry);
+  const all = snap.docs.map(d => d.data() as AuditLogEntry);
+  all.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  return all.slice(0, limit);
 }
