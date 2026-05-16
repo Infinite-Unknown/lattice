@@ -47,7 +47,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <nav className="border-b border-neutral-800 px-6 py-3 flex items-center gap-6 text-sm">
-        <Link href="/dashboard" className="font-semibold flex items-center gap-2">
+        <Link href="/dashboard" className="font-semibold flex items-center gap-2 transition-colors duration-150 hover:text-amber-300">
           <span className="text-amber-400">◉</span> Lattice
         </Link>
         <div className="flex gap-1">
@@ -65,7 +65,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {user ? (
             <button
               onClick={() => setMenuOpen(o => !o)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${ROLE_COLOR[user.role]}`}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs transition-colors duration-150 active:scale-[0.97] ${ROLE_COLOR[user.role]}`}
             >
               <span className="font-medium">{user.name}</span>
               <span className="opacity-70">·</span>
@@ -73,11 +73,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className="opacity-50">▾</span>
             </button>
           ) : (
-            <Link href="/sign-in" className="text-emerald-400 hover:underline text-xs">Sign in</Link>
+            <Link href="/sign-in" className="text-emerald-400 hover:underline text-xs transition-colors duration-150">Sign in</Link>
           )}
 
           {menuOpen && user && (
-            <div className="absolute right-0 top-full mt-2 w-72 border border-neutral-800 bg-neutral-950 rounded-lg shadow-xl z-50 text-xs overflow-hidden">
+            <div className="absolute right-0 top-full mt-2 w-72 border border-neutral-800 bg-neutral-950 rounded-lg shadow-xl z-50 text-xs overflow-hidden animate-scale-in">
               <div className="p-3 border-b border-neutral-800">
                 <div className="font-medium text-sm text-neutral-100">{user.name}</div>
                 <div className="text-neutral-500 mt-0.5">
@@ -93,13 +93,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </div>
               {!loading && can('iam.manage') && (
-                <Link href="/iam" onClick={() => setMenuOpen(false)} className="block p-3 hover:bg-neutral-900 text-neutral-300">
+                <Link href="/iam" onClick={() => setMenuOpen(false)} className="block p-3 hover:bg-neutral-900 text-neutral-300 transition-colors duration-150">
                   ⚙ Manage IAM users
                 </Link>
               )}
               <button
                 onClick={signOut}
-                className="block w-full text-left p-3 hover:bg-neutral-900 text-rose-300 border-t border-neutral-800"
+                className="block w-full text-left p-3 hover:bg-neutral-900 text-rose-300 border-t border-neutral-800 transition-colors duration-150"
               >
                 Sign out
               </button>
@@ -116,7 +116,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className="px-3 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+      className="px-3 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors duration-150"
     >
       {children}
     </Link>
