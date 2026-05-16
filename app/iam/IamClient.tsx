@@ -104,7 +104,10 @@ export default function IamClient() {
 
       {/* Create IAM user */}
       <section className="mb-8 border border-neutral-800 rounded-lg p-5 bg-neutral-900/30">
-        <div className="text-xs uppercase tracking-wider text-emerald-400 mb-3 font-medium">Create IAM user</div>
+        <div className="flex items-baseline justify-between mb-3">
+          <div className="text-xs uppercase tracking-wider text-emerald-400 font-medium">Create IAM user</div>
+          <div className="text-xs text-neutral-500">No email needed — IAM identities sign in with a username scoped to this account.</div>
+        </div>
         <form onSubmit={onCreate} className="grid md:grid-cols-5 gap-3 items-end">
           <Field label="Username">
             <input
