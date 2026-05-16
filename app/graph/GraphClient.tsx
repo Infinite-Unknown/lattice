@@ -6,6 +6,7 @@ import { useAuth } from '../AuthContext';
 import LatticeLoader from '../components/LatticeLoader';
 import AddActorModal from './AddActorModal';
 import AddRelationshipModal from './AddRelationshipModal';
+import EditActorModal from './EditActorModal';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
@@ -60,7 +61,7 @@ function edgeStyle(link: GraphLink): { color: string; dash: number[] | null; wid
     case 'proposed':
       // Always vermillion so it reads as 'needs decision' regardless of type
       // — matches the single-accent Bold Typography palette and the
-      // Cartographer chips in /inbox.
+      // Cartographer chips on /agents.
       return { color: '#FF3D00', dash: [8, 4], width: 1.8, particles: 1 };
     case 'escalated':
       return { color: '#ef4444', dash: null, width: 2.6, particles: 3 };
@@ -92,6 +93,7 @@ export default function GraphClient() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showAddActor, setShowAddActor] = useState(false);
   const [showAddRelationship, setShowAddRelationship] = useState(false);
+  const [editingActorId, setEditingActorId] = useState<string | null>(null);
   // Bumping this key force-remounts ForceGraph2D — i.e. a true 'page refresh
   // for the graph only', which throws away every existing node position and
   // re-runs the force layout from scratch.
@@ -148,6 +150,15 @@ export default function GraphClient() {
               <span className="inline-block w-2 h-2" style={{ backgroundColor: NODE_COLORS[selectedNode.type] ?? '#FAFAFA' }}></span>
               <span className="text-foreground">{selectedNode.name}</span>
               <span className="text-muted-foreground">selected</span>
+              {canWriteActor && (
+                <button
+                  onClick={() => setEditingActorId(selectedNode.id)}
+                  className="text-accent hover:opacity-80 transition-opacity duration-150 ml-2 underline underline-offset-4 decoration-1"
+                  title="Edit actor details"
+                >
+                  Edit
+                </button>
+              )}
               <button
                 onClick={() => setSelectedNodeId(null)}
                 className="text-muted-foreground hover:text-accent transition-colors duration-150 ml-1"
@@ -205,6 +216,12 @@ export default function GraphClient() {
         onCreated={() => { refresh(); setSelectedNodeId(null); }}
         actors={data.nodes}
         prefilledPartyA={selectedNodeId ?? undefined}
+      />
+      <EditActorModal
+        open={editingActorId !== null}
+        actorId={editingActorId}
+        onClose={() => setEditingActorId(null)}
+        onSaved={refresh}
       />
       {/* Graph canvas */}
       <div ref={canvasContainerRef} className="border border-border relative overflow-hidden animate-fade-in" style={{ height: '60vh' }}>

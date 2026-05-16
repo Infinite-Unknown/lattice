@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function NavInbox() {
+export default function NavAgents() {
   const pathname = usePathname();
-  const active = pathname?.startsWith('/inbox') ?? false;
+  const active = pathname?.startsWith('/agents') ?? false;
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -25,12 +25,12 @@ export default function NavInbox() {
 
   return (
     <Link
-      href="/inbox"
+      href="/agents"
       className={`px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors duration-150 relative inline-flex items-center gap-2.5 ${
         active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
       }`}
     >
-      Inbox
+      Agents
       {count !== null && count > 0 && (
         <span className="font-mono text-[10px] px-2 py-0.5 bg-accent text-accent-foreground tracking-normal min-w-[1.5rem] text-center font-bold">
           {count}

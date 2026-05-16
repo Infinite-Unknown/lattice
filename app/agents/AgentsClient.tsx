@@ -25,7 +25,7 @@ type InboxData = {
   }>;
 };
 
-export default function InboxClient() {
+export default function AgentsClient() {
   const { can, user } = useAuth();
   const canRun = can('steward.run');
   const canScan = can('cartographer.run');
@@ -177,7 +177,7 @@ export default function InboxClient() {
     <div className="max-w-7xl mx-auto">
       <header className="mb-10 md:mb-12 pb-8 border-b border-border">
         <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
-          Inbox / Decisions awaiting you
+          Agents / Decisions awaiting you
         </div>
         <h1 className="font-sans font-bold text-4xl md:text-6xl leading-none tracking-tighter">
           Approve.<br /><span className="text-muted-foreground">Or dismiss.</span>

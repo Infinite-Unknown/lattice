@@ -139,7 +139,7 @@ export default function ApprovalResultModal({
         {isMaterialised && (
           <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             {remainingProposals === 0
-              ? 'Inbox empty after this approval'
+              ? 'Agents queue empty after this approval'
               : `${remainingProposals} more ${remainingProposals === 1 ? 'proposal' : 'proposals'} in the queue`}
           </div>
         )}

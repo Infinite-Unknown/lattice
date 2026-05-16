@@ -75,7 +75,7 @@ export default function DashboardClient() {
         <section className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border mb-12 animate-fade-in">
           <StatCell label="Actors" value={actorCount} hint={`${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners`} />
           <StatCell label="Active relationships" value={relCount} hint="each one is an AI Steward" />
-          <StatCell label="Awaiting decision" value={pendingCount} hint={pending > 0 ? 'review them in the inbox' : 'all caught up'} accent={pending > 0} />
+          <StatCell label="Awaiting decision" value={pendingCount} hint={pending > 0 ? 'review them on the agents page' : 'all caught up'} accent={pending > 0} />
           <StatCell label="Outcomes captured" value={outcomesCount} hint="memory for future matching" />
         </section>
       ) : (
@@ -135,9 +135,9 @@ export default function DashboardClient() {
           <ActionCard n="01" title="See your ecosystem" body="Force-directed graph. Every line is an autonomous Steward." href="/graph" />
           <ActionCard
             n="02"
-            title={pending > 0 ? `Review ${pending} proposal${pending === 1 ? '' : 's'}` : 'Inbox is empty'}
+            title={pending > 0 ? `Review ${pending} proposal${pending === 1 ? '' : 's'}` : 'Agents queue is empty'}
             body="Per-relationship Steward actions and Cartographer structural gaps awaiting your approval."
-            href="/inbox"
+            href="/agents"
             highlight={pending > 0}
             badge={pending > 0 ? String(pending) : undefined}
           />

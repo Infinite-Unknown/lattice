@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getClientAuth } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
-import NavInbox from './NavInbox';
+import NavAgents from './NavAgents';
 import NavTodos from './NavTodos';
 
 const ROLE_DOT: Record<string, string> = {
@@ -49,7 +49,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="hidden md:flex items-center gap-1">
             <NavLink href="/dashboard" active={pathname === '/dashboard'}>Dashboard</NavLink>
             <NavLink href="/graph" active={pathname?.startsWith('/graph') ?? false}>Graph</NavLink>
-            <NavInbox />
+            <NavAgents />
             <NavTodos />
             <NavLink href="/audit" active={pathname?.startsWith('/audit') ?? false}>Audit</NavLink>
             {!loading && can('iam.manage') && (

@@ -118,14 +118,14 @@ export default function RelationshipClient({ id }: { id: string }) {
       </h1>
       <p className="font-sans text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl mb-8">
         It's a Cartographer-detected gap that hasn't been approved yet.
-        Approve it in the inbox and a real relationship gets materialised.
+        Approve it on the agents page and a real relationship gets materialised.
       </p>
       <Link
-        href="/inbox"
+        href="/agents"
         className="group inline-flex items-center font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px"
       >
         <span className="relative">
-          Open inbox · Cartographer tab →
+          Open agents · Cartographer tab →
           <span
             aria-hidden="true"
             className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"

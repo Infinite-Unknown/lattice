@@ -131,7 +131,7 @@ export default function TodosClient() {
       {todos && filtered?.length === 0 && (
         <div className="border border-border bg-card p-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {tab === 'open'
-            ? "No open todos · approve a Steward proposal on /inbox to spawn one"
+            ? "No open todos · approve a Steward proposal on /agents to spawn one"
             : tab === 'done'
               ? "Nothing completed yet"
               : "No todos in this account yet"}
