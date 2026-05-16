@@ -5,14 +5,14 @@ import { useState } from 'react';
 import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getClientAuth } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
-import NavInbox from './NavInbox';
+import NavAgents from './NavAgents';
 import NavTodos from './NavTodos';
 
-const ROLE_COLOR: Record<string, string> = {
-  root: 'bg-amber-900/40 border-amber-700/60 text-amber-200',
-  admin: 'bg-emerald-900/40 border-emerald-700/60 text-emerald-200',
-  approver: 'bg-blue-900/40 border-blue-700/60 text-blue-200',
-  viewer: 'bg-neutral-800 border-neutral-700 text-neutral-300',
+const ROLE_DOT: Record<string, string> = {
+  root: 'bg-accent',
+  admin: 'bg-foreground',
+  approver: 'bg-muted-foreground',
+  viewer: 'bg-muted-foreground',
 };
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -24,21 +24,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Public pages bring their own header — render bare here.
   const isPublicPage = pathname === '/' || pathname === '/sign-in' || pathname === '/sign-up';
   if (isPublicPage) {
-    // Landing has its own internal padding; auth forms need outer p-6.
-    return pathname === '/' ? <>{children}</> : <main className="p-6">{children}</main>;
+    return pathname === '/' ? <>{children}</> : <main className="p-6 md:p-12">{children}</main>;
   }
 
   async function signOut() {
     setMenuOpen(false);
-    // 1. CLEAR THE CLIENT-CACHED IDENTITY SYNCHRONOUSLY.
-    //    Critical to avoid the data-leak window where the next user briefly
-    //    sees the previous user's chrome (admin nav links, enabled buttons)
-    //    while /api/auth/me round-trips for their fresh identity.
     clear();
-    // 2. Clear Firebase Auth client state too, so the next sign-in form
-    //    doesn't silently re-use a cached credential.
     try { await firebaseSignOut(getClientAuth()); } catch { /* ignore */ }
-    // 3. Clear the server-side session cookie + revoke Firebase refresh tokens.
     await fetch('/api/auth/signout', { method: 'POST' });
     router.push('/sign-in');
     router.refresh();
@@ -46,79 +38,104 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <nav className="border-b border-neutral-800 px-6 py-3 flex items-center gap-6 text-sm">
-        <Link href="/dashboard" className="font-semibold flex items-center gap-2">
-          <span className="text-amber-400">◉</span> Lattice
-        </Link>
-        <div className="flex gap-1">
-          <NavLink href="/dashboard">Dashboard</NavLink>
-          <NavLink href="/graph">Graph</NavLink>
-          <NavInbox />
-          <NavTodos />
-          <NavLink href="/audit">Audit</NavLink>
-          {/* Only render IAM link once we're confident in the identity —
-              prevents flashing 'admin' chrome to a viewer mid-handoff. */}
-          {!loading && can('iam.manage') && <NavLink href="/iam">IAM</NavLink>}
-        </div>
+      <nav className="border-b border-border bg-background">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-4 flex items-center gap-8">
+          <Link
+            href="/dashboard"
+            className="font-sans font-bold text-base tracking-tight transition-colors duration-150 hover:text-accent"
+          >
+            LATTICE
+          </Link>
+          <div className="hidden md:flex items-center gap-1">
+            <NavLink href="/dashboard" active={pathname === '/dashboard'}>Dashboard</NavLink>
+            <NavLink href="/graph" active={pathname?.startsWith('/graph') ?? false}>Graph</NavLink>
+            <NavAgents />
+            <NavTodos />
+            <NavLink href="/audit" active={pathname?.startsWith('/audit') ?? false}>Audit</NavLink>
+            {!loading && can('iam.manage') && (
+              <NavLink href="/iam" active={pathname?.startsWith('/iam') ?? false}>IAM</NavLink>
+            )}
+          </div>
 
-        <div className="ml-auto relative">
-          {user ? (
-            <button
-              onClick={() => setMenuOpen(o => !o)}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs ${ROLE_COLOR[user.role]}`}
-            >
-              <span className="font-medium">{user.name}</span>
-              <span className="opacity-70">·</span>
-              <span>{user.role}</span>
-              <span className="opacity-50">▾</span>
-            </button>
-          ) : (
-            <Link href="/sign-in" className="text-emerald-400 hover:underline text-xs">Sign in</Link>
-          )}
-
-          {menuOpen && user && (
-            <div className="absolute right-0 top-full mt-2 w-72 border border-neutral-800 bg-neutral-950 rounded-lg shadow-xl z-50 text-xs overflow-hidden">
-              <div className="p-3 border-b border-neutral-800">
-                <div className="font-medium text-sm text-neutral-100">{user.name}</div>
-                <div className="text-neutral-500 mt-0.5">
-                  {user.type === 'root' ? `Root · ${user.email}` : `IAM · ${user.username}`}
-                </div>
-                <div className="text-neutral-500 mt-0.5">
-                  Role: <span className="text-neutral-200">{user.role}</span>
-                </div>
-                {account && (
-                  <div className="text-neutral-500 mt-0.5">
-                    Account: <span className="text-neutral-200">{account.name}</span>
-                  </div>
-                )}
-              </div>
-              {!loading && can('iam.manage') && (
-                <Link href="/iam" onClick={() => setMenuOpen(false)} className="block p-3 hover:bg-neutral-900 text-neutral-300">
-                  ⚙ Manage IAM users
-                </Link>
-              )}
+          <div className="ml-auto relative">
+            {user ? (
               <button
-                onClick={signOut}
-                className="block w-full text-left p-3 hover:bg-neutral-900 text-rose-300 border-t border-neutral-800"
+                onClick={() => setMenuOpen(o => !o)}
+                className="flex items-center gap-2.5 py-1.5 transition-opacity duration-150 hover:opacity-70 active:translate-y-px"
               >
-                Sign out
+                <span className={`inline-block w-2 h-2 ${ROLE_DOT[user.role] ?? 'bg-muted-foreground'}`} />
+                <span className="font-mono text-xs uppercase tracking-widest text-foreground">
+                  {user.name}
+                </span>
+                <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  / {user.role}
+                </span>
               </button>
-            </div>
-          )}
+            ) : (
+              <Link
+                href="/sign-in"
+                className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-150"
+              >
+                Sign in →
+              </Link>
+            )}
+
+            {menuOpen && user && (
+              <div
+                className="absolute right-0 top-full mt-3 w-80 border border-border bg-card z-50 animate-scale-in"
+                onMouseLeave={() => setMenuOpen(false)}
+              >
+                <div className="p-5 border-b border-border">
+                  <div className="font-sans font-semibold text-base text-foreground">{user.name}</div>
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-2">
+                    {user.type === 'root' ? 'Root' : 'IAM'} · {user.role}
+                  </div>
+                  <div className="font-mono text-xs text-muted-foreground mt-1 normal-case tracking-normal">
+                    {user.type === 'root' ? user.email : user.username}
+                  </div>
+                  {account && (
+                    <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-2">
+                      Account · <span className="text-foreground">{account.name}</span>
+                    </div>
+                  )}
+                </div>
+                {!loading && can('iam.manage') && (
+                  <Link
+                    href="/iam"
+                    onClick={() => setMenuOpen(false)}
+                    className="block p-5 font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150 border-b border-border"
+                  >
+                    Manage IAM users →
+                  </Link>
+                )}
+                <button
+                  onClick={signOut}
+                  className="block w-full text-left p-5 font-mono text-xs uppercase tracking-widest text-accent hover:bg-muted transition-colors duration-150"
+                >
+                  Sign out →
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
-      <main className="p-6">{children}</main>
+      <main className="p-6 md:p-10 lg:p-12">{children}</main>
     </>
   );
 }
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="px-3 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors"
+      className={`px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors duration-150 relative ${
+        active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+      }`}
     >
       {children}
+      {active && (
+        <span aria-hidden="true" className="absolute left-4 right-4 -bottom-px h-0.5 bg-accent" />
+      )}
     </Link>
   );
 }

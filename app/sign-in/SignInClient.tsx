@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signInAsRoot, signInAsIam } from '@/lib/auth/client-flow';
 import { useAuth } from '../AuthContext';
+import Input from '../components/Input';
+import Button from '../components/Button';
 
 export default function SignInClient() {
   const router = useRouter();
@@ -20,8 +22,6 @@ export default function SignInClient() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Discover which Account this Lattice instance belongs to so we can compute
-  // the synthetic email for IAM sign-in.
   useEffect(() => {
     fetch('/api/auth/account').then(r => r.json()).then(j => {
       if (j.account) {
@@ -42,15 +42,10 @@ export default function SignInClient() {
         if (!accountId) throw new Error('No Lattice account exists yet. Bootstrap a root account first.');
         await signInAsIam(accountId, username, password);
       }
-      // Load the new identity into AuthContext BEFORE navigating, so the
-      // destination page renders with this user's permissions from the
-      // first paint. Without this we'd briefly show whatever role was
-      // cached from the previous session (data-leak window).
       await refreshAuth();
       router.push(next);
       router.refresh();
     } catch (e: any) {
-      // Firebase Auth error codes are like 'auth/invalid-credential' — show a friendly message.
       setError(humanizeAuthError(e?.code ?? e?.message ?? 'sign-in failed'));
     } finally {
       setLoading(false);
@@ -58,91 +53,124 @@ export default function SignInClient() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-12">
-      <div className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2 font-medium">
-        Sign in to Lattice
-      </div>
-      <h1 className="text-3xl font-semibold mb-2">Welcome back</h1>
-      {accountName && (
-        <div className="text-sm text-neutral-500 mb-6">
-          Account: <span className="text-neutral-300">{accountName}</span>
-        </div>
-      )}
-
-      {/* Tab toggle, AWS-style root / IAM */}
-      <div className="flex gap-2 mb-4 border-b border-neutral-800">
-        <Tab active={mode === 'root'} onClick={() => setMode('root')}>
-          Root user
-        </Tab>
-        <Tab active={mode === 'iam'} onClick={() => setMode('iam')}>
-          IAM user
-        </Tab>
-      </div>
-
-      <form onSubmit={onSubmit} className="space-y-4 border border-neutral-800 rounded-lg p-5 bg-neutral-900/30">
-        {mode === 'root' ? (
-          <>
-            <div className="text-xs text-amber-300 bg-amber-950/30 border border-amber-900 rounded p-2">
-              ⚠️ Root has full god-mode. Prefer using IAM with a scoped role for day-to-day work.
-            </div>
-            <Field label="Root email">
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                className="w-full p-2 bg-neutral-950 border border-neutral-800 rounded text-sm"
-              />
-            </Field>
-          </>
-        ) : (
-          <>
-            <div className="text-xs text-neutral-400 bg-neutral-900 border border-neutral-800 rounded p-2">
-              IAM users sign in with a username (not email). Ask your root user for credentials.
-            </div>
-            <Field label="IAM username">
-              <input
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                required
-                placeholder="e.g. aisha-mentor"
-                className="w-full p-2 bg-neutral-950 border border-neutral-800 rounded text-sm"
-              />
-            </Field>
-          </>
-        )}
-
-        <Field label="Password">
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            className="w-full p-2 bg-neutral-950 border border-neutral-800 rounded text-sm"
-          />
-        </Field>
-
-        {error && (
-          <div className="text-sm text-rose-300 border border-rose-900 bg-rose-950/30 rounded p-2">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className={`w-full px-4 py-2 rounded text-sm font-medium disabled:opacity-50 ${
-            mode === 'root' ? 'bg-amber-700 hover:bg-amber-600' : 'bg-emerald-700 hover:bg-emerald-600'
-          }`}
+    <div className="min-h-[calc(100vh-3rem)] grid lg:grid-cols-2 -m-6 md:-m-12">
+      {/* Left — editorial pitch */}
+      <div className="hidden lg:flex flex-col justify-between p-12 lg:p-16 border-r border-border bg-background relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-12 -left-12 select-none pointer-events-none font-display font-black text-[20rem] leading-none text-muted opacity-50"
         >
-          {loading ? 'Signing in…' : mode === 'root' ? 'Sign in as Root' : 'Sign in as IAM user'}
-        </button>
-      </form>
+          ◉
+        </div>
+        <Link href="/" className="relative font-sans font-bold text-xl tracking-tight hover:text-accent transition-colors duration-150">
+          LATTICE
+        </Link>
+        <div className="relative">
+          <span className="block w-16 h-1 bg-accent mb-8" />
+          <h1 className="font-sans font-bold text-5xl xl:text-6xl leading-none tracking-tighter mb-6">
+            Welcome
+            <br />
+            <span className="text-muted-foreground">back.</span>
+          </h1>
+          <p className="font-sans text-lg text-muted-foreground max-w-md leading-relaxed">
+            Sign in to your ecosystem. Stewards have been working.
+          </p>
+        </div>
+        <div className="relative font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {accountName ? <>Account · <span className="text-foreground">{accountName}</span></> : <>Build with AI 2026 KL</>}
+        </div>
+      </div>
 
-      <div className="mt-6 text-sm text-neutral-500">
-        First time here?{' '}
-        <Link href="/sign-up" className="text-amber-400 hover:underline">Bootstrap a root account →</Link>
+      {/* Right — form */}
+      <div className="flex flex-col justify-center p-6 md:p-12 lg:p-16">
+        <div className="max-w-md w-full mx-auto">
+          <div className="lg:hidden mb-10">
+            <Link href="/" className="font-sans font-bold text-xl tracking-tight hover:text-accent transition-colors duration-150">
+              LATTICE
+            </Link>
+          </div>
+
+          <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
+            Sign in
+          </div>
+          <h2 className="font-sans font-bold text-3xl md:text-4xl leading-none tracking-tighter mb-10">
+            Pick up where the<br />Stewards left off.
+          </h2>
+
+          {/* Mode toggle */}
+          <div className="flex border-b border-border mb-8">
+            <TabButton active={mode === 'root'} onClick={() => setMode('root')}>
+              Root user
+            </TabButton>
+            <TabButton active={mode === 'iam'} onClick={() => setMode('iam')}>
+              IAM user
+            </TabButton>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-6">
+            {mode === 'root' ? (
+              <>
+                <div className="border border-accent/30 bg-accent/5 p-4 font-mono text-xs uppercase tracking-widest text-accent">
+                  Root has god-mode. Prefer IAM for daily work.
+                </div>
+                <Field label="Root email">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+                </Field>
+              </>
+            ) : (
+              <>
+                <div className="border border-border bg-muted p-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  IAM users sign in with a username, not email.
+                </div>
+                <Field label="Username">
+                  <Input
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    required
+                    placeholder="aisha-mentor"
+                    autoComplete="username"
+                  />
+                </Field>
+              </>
+            )}
+
+            <Field label="Password">
+              <Input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </Field>
+
+            {error && (
+              <div className="border border-accent bg-accent/10 p-4 font-mono text-xs uppercase tracking-widest text-accent">
+                {error}
+              </div>
+            )}
+
+            <div className="pt-2 flex flex-wrap items-center gap-8">
+              <Button type="submit" variant="primary" size="lg" disabled={loading}>
+                {loading ? 'Signing in…' : mode === 'root' ? 'Sign in as root →' : 'Sign in as IAM →'}
+              </Button>
+            </div>
+          </form>
+
+          <div className="mt-10 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            First time?{' '}
+            <Link href="/sign-up" className="text-foreground hover:text-accent transition-colors duration-150 underline underline-offset-4 decoration-1">
+              Bootstrap a root account →
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -161,13 +189,13 @@ function humanizeAuthError(code: string): string {
   return code;
 }
 
-function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-4 py-2 text-sm border-b-2 transition-colors ${
-        active ? 'border-emerald-500 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'
+      className={`px-5 py-3 font-mono text-xs uppercase tracking-widest transition-colors duration-150 border-b-2 -mb-px ${
+        active ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
       }`}
     >
       {children}
@@ -178,7 +206,7 @@ function Tab({ active, onClick, children }: { active: boolean; onClick: () => vo
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-xs text-neutral-300 mb-1 font-medium">{label}</div>
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-3">{label}</div>
       {children}
     </label>
   );

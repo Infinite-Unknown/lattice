@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../AuthContext';
+import LatticeLoader from '../components/LatticeLoader';
 import AddActorModal from './AddActorModal';
 import AddRelationshipModal from './AddRelationshipModal';
+import EditActorModal from './EditActorModal';
 
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false });
 
@@ -57,9 +59,10 @@ function edgeStyle(link: GraphLink): { color: string; dash: number[] | null; wid
     case 'active':
       return { color: base, dash: null, width: 1.6, particles: 2 };
     case 'proposed':
-      // Always amber so it reads as 'needs decision' regardless of type — same
-      // signal language as the amber Cartographer chips in /inbox.
-      return { color: '#f59e0b', dash: [8, 4], width: 1.6, particles: 1 };
+      // Always vermillion so it reads as 'needs decision' regardless of type
+      // — matches the single-accent Bold Typography palette and the
+      // Cartographer chips on /agents.
+      return { color: '#FF3D00', dash: [8, 4], width: 1.8, particles: 1 };
     case 'escalated':
       return { color: '#ef4444', dash: null, width: 2.6, particles: 3 };
     case 'tapered':
@@ -90,6 +93,7 @@ export default function GraphClient() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showAddActor, setShowAddActor] = useState(false);
   const [showAddRelationship, setShowAddRelationship] = useState(false);
+  const [editingActorId, setEditingActorId] = useState<string | null>(null);
   // Bumping this key force-remounts ForceGraph2D — i.e. a true 'page refresh
   // for the graph only', which throws away every existing node position and
   // re-runs the force layout from scratch.
@@ -130,42 +134,69 @@ export default function GraphClient() {
 
   const selectedNode = selectedNodeId ? data?.nodes.find(n => n.id === selectedNodeId) ?? null : null;
 
-  if (!data) return <div className="text-neutral-500 py-8">Loading graph…</div>;
+  if (!data) return (
+    <div className="border border-border flex items-center justify-center animate-fade-in" style={{ height: '60vh' }}>
+      <LatticeLoader size="lg" label="Materialising your ecosystem…" />
+    </div>
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Top actions row — Add actor is always available; Add relationship is contextual */}
+    <div className="space-y-6">
+      {/* Top actions row */}
       {(canWriteActor || canWriteRelationship) && (
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-4 flex-wrap">
           {selectedNode && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-700 text-xs">
-              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: NODE_COLORS[selectedNode.type] ?? '#94a3b8' }}></span>
-              <span className="font-medium">{selectedNode.name}</span>
-              <span className="text-neutral-500">selected</span>
+            <div className="flex items-center gap-3 px-4 py-2 border border-border bg-card font-mono text-xs uppercase tracking-widest">
+              <span className="inline-block w-2 h-2" style={{ backgroundColor: NODE_COLORS[selectedNode.type] ?? '#FAFAFA' }}></span>
+              <span className="text-foreground">{selectedNode.name}</span>
+              <span className="text-muted-foreground">selected</span>
+              {canWriteActor && (
+                <button
+                  onClick={() => setEditingActorId(selectedNode.id)}
+                  className="text-accent hover:opacity-80 transition-opacity duration-150 ml-2 underline underline-offset-4 decoration-1"
+                  title="Edit actor details"
+                >
+                  Edit
+                </button>
+              )}
               <button
                 onClick={() => setSelectedNodeId(null)}
-                className="text-neutral-500 hover:text-neutral-200 ml-1"
+                className="text-muted-foreground hover:text-accent transition-colors duration-150 ml-1"
                 aria-label="Clear selection"
               >
                 ×
               </button>
             </div>
           )}
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex gap-6">
             {canWriteActor && (
               <button
                 onClick={() => setShowAddActor(true)}
-                className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+                className="group inline-flex items-center font-semibold uppercase tracking-wider text-xs text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px"
               >
-                + Add actor
+                <span className="relative">
+                  + Add actor
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+                    style={{ transformOrigin: 'left center' }}
+                  />
+                </span>
               </button>
             )}
             {canWriteRelationship && selectedNode && (
               <button
                 onClick={() => setShowAddRelationship(true)}
-                className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium"
+                className="group inline-flex items-center font-semibold uppercase tracking-wider text-xs text-foreground py-2 transition-all duration-150 ease-crisp active:translate-y-px"
               >
-                + Form relationship from {selectedNode.name}
+                <span className="relative">
+                  + Form relationship from {selectedNode.name}
+                  <span
+                    aria-hidden="true"
+                    className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+                    style={{ transformOrigin: 'left center' }}
+                  />
+                </span>
               </button>
             )}
           </div>
@@ -173,8 +204,8 @@ export default function GraphClient() {
       )}
 
       {canWriteRelationship && !selectedNode && (
-        <div className="text-xs text-neutral-500 border border-neutral-800 rounded p-2 bg-neutral-900/30">
-          💡 Click any node to select it, then form a new relationship starting from there. Click empty canvas to deselect.
+        <div className="border border-border bg-card p-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Click any node to select it · then form a new relationship from there
         </div>
       )}
 
@@ -186,8 +217,14 @@ export default function GraphClient() {
         actors={data.nodes}
         prefilledPartyA={selectedNodeId ?? undefined}
       />
+      <EditActorModal
+        open={editingActorId !== null}
+        actorId={editingActorId}
+        onClose={() => setEditingActorId(null)}
+        onSaved={refresh}
+      />
       {/* Graph canvas */}
-      <div ref={canvasContainerRef} className="border border-neutral-800 rounded-lg relative overflow-hidden" style={{ height: '60vh' }}>
+      <div ref={canvasContainerRef} className="border border-border relative overflow-hidden animate-fade-in" style={{ height: '60vh' }}>
         <ForceGraph2D
           key={resetKey}
           ref={fgRef}
@@ -253,7 +290,7 @@ export default function GraphClient() {
           onNodeHover={(n: any) => setHoveredNode(n as any)}
           onNodeClick={(n: any) => setSelectedNodeId(n.id)}
           onBackgroundClick={() => setSelectedNodeId(null)}
-          backgroundColor="#0a0a0a"
+          backgroundColor="#0A0A0A"
           // Settle physics after a finite number of simulation ticks so the
           // graph isn't perpetually drifting. Dragging a node naturally
           // re-heats the simulation when needed.
@@ -262,86 +299,89 @@ export default function GraphClient() {
 
         {/* Hover tooltip */}
         {hoveredLink && (
-          <div className="absolute top-3 right-3 max-w-xs p-3 rounded-lg border border-neutral-700 bg-neutral-900/95 backdrop-blur text-xs shadow-lg pointer-events-none">
-            <div className="font-medium text-neutral-100 mb-1">{hoveredLink.label}</div>
-            <div className="text-neutral-400 mb-1">
+          <div className="absolute top-3 right-3 max-w-xs p-4 border border-border bg-card/95 backdrop-blur text-xs pointer-events-none">
+            <div className="absolute top-0 left-0 w-12 h-1 bg-accent" />
+            <div className="font-sans font-semibold text-foreground mb-2">{hoveredLink.label}</div>
+            <div className="font-mono text-xs uppercase tracking-widest mb-2">
               <span style={{ color: TYPE_COLORS[hoveredLink.type] }}>{RELATIONSHIP_TYPE_LABEL[hoveredLink.type] ?? hoveredLink.type}</span>
-              <span className="text-neutral-600 mx-1">·</span>
+              <span className="text-muted-foreground mx-2">/</span>
               <span className={
-                hoveredLink.state === 'escalated' ? 'text-rose-400' :
-                hoveredLink.state === 'proposed' ? 'text-amber-400' :
-                'text-emerald-400'
+                hoveredLink.state === 'escalated' ? 'text-accent' :
+                hoveredLink.state === 'proposed' ? 'text-accent' :
+                'text-foreground'
               }>{hoveredLink.state}</span>
             </div>
             {hoveredLink.cadence && (
-              <div className="text-neutral-500">Cadence: {hoveredLink.cadence}</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">Cadence · <span className="text-foreground normal-case tracking-normal">{hoveredLink.cadence}</span></div>
             )}
             {hoveredLink.focus?.length > 0 && (
-              <div className="text-neutral-500">Focus: {hoveredLink.focus.join(', ')}</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">Focus · <span className="text-foreground normal-case tracking-normal">{hoveredLink.focus.join(', ')}</span></div>
             )}
             {hoveredLink.outcomes_count > 0 && (
-              <div className="text-neutral-500">Outcomes logged: {hoveredLink.outcomes_count}</div>
+              <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">Outcomes · <span className="text-foreground">{hoveredLink.outcomes_count}</span></div>
             )}
-            <div className="text-neutral-600 mt-2 italic">Click to open detail →</div>
+            <div className="font-mono text-xs uppercase tracking-widest text-accent mt-3">Click for detail →</div>
           </div>
         )}
 
-        {/* View control: throw away every node position and re-run the
-            force layout from scratch — page-refresh-shaped, scoped to the
-            graph only. Use this if nodes have drifted off-screen or piled
-            up into a tangle. */}
+        {/* View control */}
         <div className="absolute top-3 left-3 z-10">
           <button
             onClick={resetLayout}
-            title="Re-run the force layout from scratch (like refreshing the page)"
-            className="px-2 py-1 rounded bg-neutral-900/85 hover:bg-neutral-800 backdrop-blur border border-neutral-700 text-xs text-neutral-200 flex items-center gap-1.5"
+            title="Re-run the force layout from scratch"
+            className="px-3 py-1.5 bg-card/85 hover:bg-muted backdrop-blur border border-border font-mono text-xs uppercase tracking-widest text-foreground transition-colors duration-150"
           >
-            ⟲ Reset layout
+            ↻ Reset layout
           </button>
         </div>
       </div>
 
-      {/* Comprehensive legend panel */}
-      <div className="border border-neutral-800 rounded-lg p-4 bg-neutral-900/30">
-        <div className="text-xs uppercase tracking-[0.15em] text-neutral-500 mb-3 font-medium">Legend</div>
-        <div className="grid md:grid-cols-3 gap-6 text-xs">
-          {/* Actor nodes */}
-          <div>
-            <div className="text-neutral-300 font-medium mb-2">Actors (nodes)</div>
-            <div className="space-y-1.5">
+      {/* Legend — editorial 3-column */}
+      <div className="border-t border-border pt-8">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-6">
+          Legend
+        </div>
+        <div className="grid md:grid-cols-3 gap-px bg-border">
+          <div className="bg-background p-6">
+            <div className="font-mono text-xs uppercase tracking-widest text-foreground mb-4">
+              Actors / Nodes
+            </div>
+            <div className="space-y-3">
               <LegendDot color="#34d399" label="Mentor" hint="experienced operator" />
               <LegendDot color="#60a5fa" label="Company" hint="founder / startup" />
               <LegendDot color="#fbbf24" label="Programme" hint="accelerator / cohort" />
-              <LegendDot color="#f472b6" label="Partner" hint="corporate, service, or network" />
+              <LegendDot color="#f472b6" label="Partner" hint="corporate · service · network" />
             </div>
           </div>
 
-          {/* Relationship types */}
-          <div>
-            <div className="text-neutral-300 font-medium mb-2">Relationship types (edge colour)</div>
-            <div className="space-y-1.5">
+          <div className="bg-background p-6">
+            <div className="font-mono text-xs uppercase tracking-widest text-foreground mb-4">
+              Relationship type / Edge color
+            </div>
+            <div className="space-y-3">
               <LegendEdge color="#34d399" label="Mentorship" hint="mentor ↔ founder" />
-              <LegendEdge color="#fbbf24" label="Company in programme" hint="founder enrolled in cohort" />
-              <LegendEdge color="#f472b6" label="Partner in initiative" hint="partner attached to programme" />
-              <LegendEdge color="#60a5fa" label="Service engagement" hint="service provider engagement" />
+              <LegendEdge color="#fbbf24" label="Company in programme" hint="founder in cohort" />
+              <LegendEdge color="#f472b6" label="Partner in initiative" hint="partner in programme" />
+              <LegendEdge color="#60a5fa" label="Service engagement" hint="provider engagement" />
             </div>
           </div>
 
-          {/* Relationship states */}
-          <div>
-            <div className="text-neutral-300 font-medium mb-2">Lifecycle state (edge style)</div>
-            <div className="space-y-1.5">
-              <LegendState style="solid" color="#34d399" label="Active" hint="Steward is running" />
-              <LegendState style="long-dash" color="#f59e0b" label="Proposed" hint="amber + long dash · awaiting your approval" />
-              <LegendState style="solid" color="#ef4444" label="Escalated" hint="thick red · policy trigger fired" />
-              <LegendState style="dotted" color="#34d3994d" label="Tapered" hint="faded dots · winding down" />
-              <LegendState style="solid" color="#52525250" label="Closed" hint="ghost line · sunset, kept for memory" />
+          <div className="bg-background p-6">
+            <div className="font-mono text-xs uppercase tracking-widest text-foreground mb-4">
+              Lifecycle / Edge style
+            </div>
+            <div className="space-y-3">
+              <LegendState style="solid" color="#34d399" label="Active" hint="Steward running" />
+              <LegendState style="long-dash" color="#FF3D00" label="Proposed" hint="awaiting approval" />
+              <LegendState style="solid" color="#ef4444" label="Escalated" hint="policy triggered" />
+              <LegendState style="dotted" color="#34d3994d" label="Tapered" hint="winding down" />
+              <LegendState style="solid" color="#52525250" label="Closed" hint="kept for memory" />
             </div>
           </div>
         </div>
 
-        <div className="mt-4 pt-3 border-t border-neutral-800 text-xs text-neutral-500">
-          <span className="text-neutral-300 font-medium">Tip:</span> hover any edge to see its parties, focus, cadence, and outcome count. Click to drill into the Steward log and policy editor.
+        <div className="mt-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Tip · <span className="text-foreground normal-case tracking-normal">hover any edge for parties, focus, cadence, outcome count. Click to drill in.</span>
         </div>
       </div>
     </div>
@@ -350,20 +390,20 @@ export default function GraphClient() {
 
 function LegendDot({ color, label, hint }: { color: string; label: string; hint: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="inline-block w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: color }}></span>
-      <span className="text-neutral-200">{label}</span>
-      <span className="text-neutral-500">— {hint}</span>
+    <div className="flex items-center gap-3">
+      <span className="inline-block w-3 h-3 flex-shrink-0" style={{ backgroundColor: color }}></span>
+      <span className="font-sans text-sm text-foreground">{label}</span>
+      <span className="font-mono text-xs text-muted-foreground">· {hint}</span>
     </div>
   );
 }
 
 function LegendEdge({ color, label, hint }: { color: string; label: string; hint: string }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <span className="inline-block w-6 h-0.5 flex-shrink-0" style={{ backgroundColor: color }}></span>
-      <span className="text-neutral-200">{label}</span>
-      <span className="text-neutral-500">— {hint}</span>
+      <span className="font-sans text-sm text-foreground">{label}</span>
+      <span className="font-mono text-xs text-muted-foreground">· {hint}</span>
     </div>
   );
 }
@@ -375,7 +415,7 @@ function LegendState({ style, color, label, hint }: { style: 'solid' | 'long-das
     : undefined;
   const strokeWidth = style === 'dotted' ? 2 : 2.2;
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-3">
       <svg width="28" height="6" className="flex-shrink-0">
         <line
           x1="0" y1="3" x2="28" y2="3"
@@ -385,8 +425,8 @@ function LegendState({ style, color, label, hint }: { style: 'solid' | 'long-das
           strokeLinecap={style === 'dotted' ? 'round' : 'butt'}
         />
       </svg>
-      <span className="text-neutral-200">{label}</span>
-      <span className="text-neutral-500">— {hint}</span>
+      <span className="font-sans text-sm text-foreground">{label}</span>
+      <span className="font-mono text-xs text-muted-foreground">· {hint}</span>
     </div>
   );
 }

@@ -1,8 +1,11 @@
 'use client';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export default function NavInbox() {
+export default function NavAgents() {
+  const pathname = usePathname();
+  const active = pathname?.startsWith('/agents') ?? false;
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -22,14 +25,19 @@ export default function NavInbox() {
 
   return (
     <Link
-      href="/inbox"
-      className="px-3 py-1.5 rounded text-neutral-400 hover:text-white hover:bg-neutral-900 transition-colors flex items-center gap-2"
+      href="/agents"
+      className={`px-4 py-2 font-mono text-xs uppercase tracking-widest transition-colors duration-150 relative inline-flex items-center gap-2.5 ${
+        active ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+      }`}
     >
-      Inbox
+      Agents
       {count !== null && count > 0 && (
-        <span className="text-xs px-1.5 py-0.5 rounded-full bg-amber-700 text-white min-w-[1.25rem] text-center">
+        <span className="font-mono text-[10px] px-2 py-0.5 bg-accent text-accent-foreground tracking-normal min-w-[1.5rem] text-center font-bold">
           {count}
         </span>
+      )}
+      {active && (
+        <span aria-hidden="true" className="absolute left-4 right-4 -bottom-px h-0.5 bg-accent" />
       )}
     </Link>
   );

@@ -9,6 +9,7 @@ export type AuditAction =
   | 'approve_proposal'
   | 'dismiss_proposal'
   | 'create_actor'
+  | 'edit_actor'
   | 'create_relationship'
   | 'transition_relationship_state'
   | 'edit_policy'

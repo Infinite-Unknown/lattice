@@ -115,3 +115,4 @@ temp/
 scripts-tmp-*
 *.local.ts
 *.local.tsx
+.gstack/

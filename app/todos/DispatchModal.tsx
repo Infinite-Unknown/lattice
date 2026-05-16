@@ -5,37 +5,34 @@ import Spinner from '../components/Spinner';
 
 type Channel = 'email' | 'calendar' | 'slack';
 
-const CHANNEL_META: Record<Channel, { label: string; icon: string; intro: string; bullets: string[] }> = {
+const CHANNEL_META: Record<Channel, { label: string; intro: string; bullets: string[] }> = {
   email: {
     label: 'Email',
-    icon: '📧',
     intro: 'In production this will draft and send an email via your connected mail provider.',
     bullets: [
-      'Subject: derived from the todo title',
-      'Body: the todo description (Steward’s reasoning)',
+      'Subject derived from the todo title',
+      'Body uses the Steward reasoning',
       'To: the parties\' canonical addresses (once profile.email is populated)',
       'CC: optional admin distribution list',
     ],
   },
   calendar: {
     label: 'Calendar',
-    icon: '📅',
     intro: 'In production this will create a Google Calendar event and invite both parties.',
     bullets: [
-      'Title: the todo title',
-      'Description: the Steward’s reasoning',
+      'Title from the todo',
+      'Description from the Steward reasoning',
       'Attendees: both parties',
-      'Default duration: 30 minutes, scheduled within the next 7 days',
+      'Default 30 min, scheduled in the next 7 days',
     ],
   },
   slack: {
     label: 'Slack',
-    icon: '💬',
     intro: 'In production this will post to the configured Slack channel and DM each party.',
     bullets: [
       'Channel: #ecosystem-coordination (configurable)',
       'Direct mentions for each party',
-      'Includes the action context + reasoning + a link back to this todo',
+      'Includes action context + reasoning + a link back to this todo',
     ],
   },
 };
@@ -76,37 +73,60 @@ export default function DispatchModal({
 
   return (
     <Modal open={!!todoId} onClose={onClose} title={`Send via ${meta.label}`} width="max-w-md">
-      <div className="space-y-4">
-        <div className="text-2xl">{meta.icon}</div>
-        <div className="text-sm text-neutral-300">
-          <span className="text-neutral-500">Todo:</span> <span className="font-medium text-neutral-100">{todoTitle}</span>
+      <div className="space-y-5">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+            Todo
+          </div>
+          <div className="font-sans font-semibold text-foreground">{todoTitle}</div>
         </div>
 
-        <div className="border border-neutral-800 rounded-lg p-3 bg-neutral-900/30 text-sm">
-          <div className="text-amber-300 text-xs uppercase tracking-wider mb-1.5 font-medium">⚠ Placeholder — no message will actually be sent</div>
-          <p className="text-neutral-300 leading-relaxed mb-2">{meta.intro}</p>
-          <ul className="space-y-1 text-xs text-neutral-400 list-disc list-inside">
-            {meta.bullets.map(b => <li key={b}>{b}</li>)}
+        <div className="border border-border bg-card p-4 space-y-3">
+          <div className="font-mono text-xs uppercase tracking-widest text-accent">
+            ⚠ Placeholder · no message will actually be sent
+          </div>
+          <p className="font-sans text-sm text-foreground leading-relaxed">{meta.intro}</p>
+          <ul className="space-y-1.5 font-sans text-xs text-muted-foreground">
+            {meta.bullets.map(b => (
+              <li key={b} className="flex gap-2">
+                <span className="text-muted-foreground/50">·</span>
+                <span>{b}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
-        <p className="text-xs text-neutral-500">
-          Clicking <strong>Record dispatch</strong> will mark this todo as dispatched via <span className="font-medium">{meta.label}</span> in the audit log and on the todo itself, but won&apos;t send any real message yet. The todo stays open — mark it done separately once the work actually happens.
+        <p className="font-mono text-xs text-muted-foreground/80 normal-case tracking-normal leading-relaxed">
+          Clicking 'Record dispatch' marks this todo as dispatched via <span className="text-foreground">{meta.label}</span> in the audit log and on the todo itself, but won't send any real message yet. Mark the todo done separately once the work happens.
         </p>
 
         {error && (
-          <div className="text-sm text-rose-300 border border-rose-900 bg-rose-950/30 rounded p-2">{error}</div>
+          <div className="border border-accent bg-accent/10 p-3 font-mono text-xs uppercase tracking-widest text-accent">
+            {error}
+          </div>
         )}
 
-        <div className="flex gap-2 justify-end pt-2 border-t border-neutral-800">
-          <button onClick={onClose} className="px-4 py-2 rounded border border-neutral-700 hover:bg-neutral-900 text-sm">Cancel</button>
+        <div className="flex items-center gap-8 pt-4 border-t border-border">
           <button
             onClick={confirm}
             disabled={busy}
-            className="px-4 py-2 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-sm font-medium flex items-center gap-1.5"
+            className="group inline-flex items-center gap-2 font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy && <Spinner />}
-            Record dispatch
+            <span className="relative">
+              Record dispatch →
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden"
+                style={{ transformOrigin: 'left center' }}
+              />
+            </span>
+          </button>
+          <button
+            onClick={onClose}
+            className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-150"
+          >
+            Cancel
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
 
 type AuditEntry = {
   id: string;
@@ -13,31 +14,19 @@ type AuditEntry = {
   details: string;
 };
 
-const ACTION_COLOR: Record<string, string> = {
-  approve_steward:               'text-emerald-300 bg-emerald-950/40 border-emerald-800/60',
-  dismiss_steward:               'text-rose-300 bg-rose-950/40 border-rose-800/60',
-  approve_proposal:              'text-emerald-300 bg-emerald-950/40 border-emerald-800/60',
-  dismiss_proposal:              'text-rose-300 bg-rose-950/40 border-rose-800/60',
-  create_actor:                  'text-blue-300 bg-blue-950/40 border-blue-800/60',
-  create_relationship:           'text-blue-300 bg-blue-950/40 border-blue-800/60',
-  transition_relationship_state: 'text-amber-300 bg-amber-950/40 border-amber-800/60',
-  auto_state_transition:         'text-amber-300 bg-amber-950/40 border-amber-800/60',
-  edit_policy:                   'text-amber-300 bg-amber-950/40 border-amber-800/60',
-  create_iam_user:               'text-purple-300 bg-purple-950/40 border-purple-800/60',
-  revoke_iam_user:               'text-rose-300 bg-rose-950/40 border-rose-800/60',
-};
-
-const ROLE_COLOR: Record<string, string> = {
-  root: 'text-amber-300',
-  admin: 'text-emerald-300',
-  approver: 'text-blue-300',
-  viewer: 'text-neutral-400',
-};
+// Action types fall into 4 semantic groups. Coloring conveys consequence,
+// not category — accent for state-changing, foreground for create/manage,
+// muted for the rest.
+function actionTone(action: string): 'accent' | 'foreground' | 'muted' {
+  if (action.includes('approve') || action.includes('transition') || action.includes('escalate')) return 'accent';
+  if (action.includes('create') || action.includes('edit') || action.includes('iam')) return 'foreground';
+  return 'muted';
+}
 
 export default function AuditClient() {
   const [entries, setEntries] = useState<AuditEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'mine' | 'agents-related'>('all');
+  const [filter, setFilter] = useState<'all' | 'agents-related'>('all');
 
   async function refresh() {
     try {
@@ -55,75 +44,107 @@ export default function AuditClient() {
 
   const filtered = entries?.filter(e => {
     if (filter === 'all') return true;
-    if (filter === 'agents-related') return e.action.includes('steward') || e.action.includes('proposal') || e.action.includes('state');
-    return true;
+    return e.action.includes('steward') || e.action.includes('proposal') || e.action.includes('state');
   });
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-6">
-        <div className="text-xs uppercase tracking-[0.2em] text-amber-400 mb-2 font-medium">
-          Audit log · Who did what when
+    <div className="max-w-7xl mx-auto">
+      <header className="mb-10 md:mb-12 pb-8 border-b border-border">
+        <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
+          Audit / Governance
         </div>
-        <h1 className="text-2xl font-semibold mb-1">Governance history</h1>
-        <p className="text-neutral-400 max-w-3xl">
-          Every administrative action — approving or dismissing AI proposals, creating actors or
-          relationships, transitioning state, editing policy, managing IAM users — is recorded here
-          with the identity of the operator, role at the time, and the affected entity. This is the
-          surface a compliance review (or post-incident investigation) inspects.
+        <h1 className="font-sans font-bold text-4xl md:text-6xl leading-none tracking-tighter mb-6">
+          Every admin action.<br /><span className="text-muted-foreground">Recorded.</span>
+        </h1>
+        <p className="font-sans text-base md:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+          Every approval, dismissal, state transition, policy edit, and IAM
+          change — with the identity of the operator, their role at the
+          time, and the affected entity. The surface a compliance review
+          inspects.
         </p>
-      </div>
+      </header>
 
-      <div className="flex items-center gap-3 mb-4 text-sm">
-        <select
-          value={filter}
-          onChange={e => setFilter(e.target.value as any)}
-          className="px-3 py-1.5 rounded bg-neutral-900 border border-neutral-800 text-sm"
-        >
-          <option value="all">All actions</option>
-          <option value="agents-related">Agent-related only (approve/dismiss/state)</option>
-        </select>
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-8 pb-4 border-b border-border">
+        <div className="flex">
+          <FilterTab active={filter === 'all'} onClick={() => setFilter('all')}>
+            All actions
+          </FilterTab>
+          <FilterTab active={filter === 'agents-related'} onClick={() => setFilter('agents-related')}>
+            Agent-related
+          </FilterTab>
+        </div>
         <button
           onClick={refresh}
-          className="ml-auto px-3 py-1.5 rounded text-xs bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300"
+          className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-150 underline underline-offset-4 decoration-1"
         >
           ↻ Refresh
         </button>
       </div>
 
       {error && (
-        <div className="text-sm text-rose-300 border border-rose-900 bg-rose-950/30 rounded p-2 mb-4">{error}</div>
+        <div className="mb-6 border border-accent bg-accent/10 p-4 font-mono text-xs uppercase tracking-widest text-accent">
+          {error}
+        </div>
       )}
 
-      <div className="border border-neutral-800 rounded-lg divide-y divide-neutral-800">
-        {!entries && <div className="p-4 text-neutral-500 text-sm">Loading…</div>}
-        {entries && entries.length === 0 && (
-          <div className="p-4 text-neutral-500 text-sm">No audit entries yet. Perform an admin action (approve a Steward proposal, create an actor, transition state) to populate this log.</div>
-        )}
-        {filtered?.map(e => (
-          <div key={e.id} className="p-3 hover:bg-neutral-900/50">
-            <div className="flex items-center gap-3 text-xs flex-wrap">
-              <span className="text-neutral-500 tabular-nums">
-                {new Date(e.timestamp).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'medium' })}
-              </span>
-              <span className={`px-2 py-0.5 rounded border ${ACTION_COLOR[e.action] ?? 'text-neutral-300 bg-neutral-900 border-neutral-700'}`}>
-                {e.action}
-              </span>
-              <span className="text-neutral-200">
-                <span className={ROLE_COLOR[e.actor_role]}>{e.actor_role}</span> · {e.actor_name}
-              </span>
-              <span className="text-neutral-600">
-                target: {e.target_kind}:{e.target_id}
-              </span>
-            </div>
-            <div className="text-sm mt-1">{e.details}</div>
-          </div>
-        ))}
-      </div>
+      {!entries ? (
+        <SkeletonRows count={5} />
+      ) : entries.length === 0 ? (
+        <div className="border border-border bg-card p-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          No audit entries yet · perform an admin action to populate this log
+        </div>
+      ) : (
+        <div className="border-t border-border">
+          {filtered?.map(e => {
+            const tone = actionTone(e.action);
+            const actionColor =
+              tone === 'accent' ? 'text-accent' :
+              tone === 'foreground' ? 'text-foreground' :
+              'text-muted-foreground';
+            return (
+              <div
+                key={e.id}
+                className="grid md:grid-cols-[160px_1fr_auto] gap-4 md:gap-6 py-5 border-b border-border hover:bg-muted transition-colors duration-150 group"
+              >
+                <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground tabular-nums">
+                  {new Date(e.timestamp).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' })}
+                </div>
+                <div>
+                  <div className="font-mono text-xs uppercase tracking-widest mb-2">
+                    <span className={actionColor}>{e.action}</span>
+                    <span className="text-muted-foreground"> / </span>
+                    <span className="text-foreground">{e.actor_name}</span>
+                    <span className="text-muted-foreground"> · {e.actor_role}</span>
+                  </div>
+                  <div className="font-sans text-sm md:text-base text-foreground leading-snug">
+                    {e.details}
+                  </div>
+                </div>
+                <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground md:text-right normal-case tracking-normal">
+                  {e.target_kind}:{e.target_id}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      <div className="text-xs text-neutral-500 mt-4">
-        Showing the latest {entries?.length ?? 0} entries · filter applied: {filter}
+      <div className="mt-6 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        Showing latest {entries?.length ?? 0} entries · filter · <span className="text-foreground">{filter}</span>
       </div>
     </div>
+  );
+}
+
+function FilterTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-5 py-3 -mb-px font-mono text-xs uppercase tracking-widest transition-colors duration-150 border-b-2 ${
+        active ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
