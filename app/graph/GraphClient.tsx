@@ -142,7 +142,7 @@ export default function GraphClient() {
 
       {canWriteRelationship && !selectedNode && (
         <div className="text-xs text-neutral-500 border border-neutral-800 rounded p-2 bg-neutral-900/30">
-          💡 Click any node to select it, then form a new relationship starting from there.
+          💡 Click any node to select it, then form a new relationship starting from there. Click empty canvas to deselect.
         </div>
       )}
 
@@ -219,6 +219,7 @@ export default function GraphClient() {
           onLinkClick={(l: any) => router.push(`/relationships/${l.id}`)}
           onNodeHover={(n: any) => setHoveredNode(n as any)}
           onNodeClick={(n: any) => setSelectedNodeId(n.id)}
+          onBackgroundClick={() => setSelectedNodeId(null)}
           backgroundColor="#0a0a0a"
         />
 
