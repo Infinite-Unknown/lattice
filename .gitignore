@@ -2,6 +2,10 @@
 #  Lattice .gitignore
 #  Keep this repo clean for the GitHub submission — no secrets, no
 #  vendor/hackathon materials, no per-machine local state.
+#
+#  NOTE on syntax: gitignore comments must be on their own line —
+#  trailing inline comments (foo/ # bar) are NOT supported; '#' becomes
+#  part of the path. Always put comments on the line ABOVE the pattern.
 # ────────────────────────────────────────────────────────────────────
 
 # ── Node / build artefacts ─────────────────────────────────────────
@@ -67,23 +71,31 @@ Desktop.ini
 \#*\#
 .\#*
 
-# ── AI coding agents — keep their per-machine state out of the repo
-#    EXCEPT CLAUDE.md, which IS the intentional shared project memory.
-.claude/                       # Claude Code local state
-.cursor/                       # Cursor IDE
-.cursorrules                   # Cursor per-machine rules
+# ── AI coding agents — keep per-machine state out of the repo.
+# EXCEPT CLAUDE.md, which IS the intentional shared project memory.
+# Claude Code local state
+.claude/
+# Cursor IDE
+.cursor/
+.cursorrules
 .cursorignore
-.windsurfrules                 # Windsurf
-.aider*                        # Aider AI assistant
-.continue/                     # Continue.dev
-.codeium/                      # Codeium
+# Windsurf
+.windsurfrules
+# Aider
+.aider*
+# Continue.dev
+.continue/
+# Codeium
+.codeium/
 .copilotignore
-MEMORY (Claude)/               # Stray local Claude memory folder
+# Stray local Claude memory folder
+MEMORY (Claude)/
+# Other AI provider local state
 .anthropic/
 .gemini/
 .openai/
 
-# Per-session AI transcripts / journal files that occasionally land in cwd
+# Per-session AI transcripts / journal files
 *.claude-session.md
 *.transcript.md
 
