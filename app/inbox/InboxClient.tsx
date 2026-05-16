@@ -2,10 +2,25 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import Spinner from '../components/Spinner';
+import { CitationChipList, type ChipCitation } from '../components/CitationChip';
+import { humaniseLabel } from '@/lib/format';
 
 type InboxData = {
-  pendingActions: Array<{ kind: 'steward'; relationshipId: string; relationshipLabel: string; timestamp: string; action: string; reasoning: string; citations: string[]; confidence: number; }>;
-  gaps: Array<{ kind: 'proposal'; proposalId: string; gapType: string; candidates: string[]; reasoning: string; citations: string[]; impact: string; confidence: number; }>;
+  pendingActions: Array<{
+    kind: 'steward';
+    relationshipId: string; relationshipLabel: string; timestamp: string;
+    action: string;            // raw — used in API calls + auto-transition checks
+    reasoning: string;         // rewritten for readability
+    citations: ChipCitation[]; // resolved chip data
+    confidence: number;
+  }>;
+  gaps: Array<{
+    kind: 'proposal';
+    proposalId: string; gapType: string; candidates: string[];
+    reasoning: string;
+    citations: ChipCitation[];
+    impact: string; confidence: number;
+  }>;
 };
 
 export default function InboxClient() {
@@ -175,7 +190,12 @@ export default function InboxClient() {
                 <div className="flex justify-between gap-3">
                   <div>
                     <div className="font-medium">{a.relationshipLabel}</div>
-                    <div className="text-xs text-neutral-400">action: <span className="text-emerald-400">{a.action}</span> · confidence {a.confidence.toFixed(2)}</div>
+                    <div className="text-xs text-neutral-400 mt-0.5 flex items-center gap-2 flex-wrap">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-[11px] font-medium">
+                        {humaniseLabel(a.action)}
+                      </span>
+                      <span>confidence {a.confidence.toFixed(2)}</span>
+                    </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
@@ -198,10 +218,10 @@ export default function InboxClient() {
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 text-sm">{a.reasoning}</p>
-                <div className="mt-1 text-xs text-neutral-500">citations: {a.citations.join(', ')}</div>
+                <p className="mt-3 text-sm leading-relaxed">{a.reasoning}</p>
+                <CitationChipList citations={a.citations} />
                 {(a.action === 'taper' || a.action === 'sunset' || a.action === 'escalate') && (
-                  <div className="mt-2 text-xs text-amber-400">
+                  <div className="mt-3 text-xs text-amber-400">
                     ⚠ Approving will auto-transition state to <span className="font-medium">{a.action === 'taper' ? 'tapered' : a.action === 'sunset' ? 'closed' : 'escalated'}</span>.
                   </div>
                 )}
@@ -223,8 +243,10 @@ export default function InboxClient() {
               <div key={g.proposalId} className="border border-neutral-800 rounded p-4">
                 <div className="flex justify-between gap-3">
                   <div>
-                    <div className="font-medium"><span className="text-amber-400">{g.gapType}</span></div>
-                    <div className="text-xs text-neutral-400">candidates: {g.candidates.join(', ')} · confidence {g.confidence.toFixed(2)}</div>
+                    <div className="font-medium text-amber-300">{humaniseLabel(g.gapType)}</div>
+                    <div className="text-xs text-neutral-400 mt-0.5">
+                      candidates: <span className="text-neutral-200">{g.candidates.join(', ')}</span> · confidence {g.confidence.toFixed(2)}
+                    </div>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
@@ -239,7 +261,7 @@ export default function InboxClient() {
                     <button
                       onClick={() => decideProposal(g.proposalId, 'approve')}
                       disabled={!canApprove || !!busyId}
-                      title={canApprove ? 'Approve — marks as recruited; create the actual relationship from the Graph page' : `Your role (${user?.role}) lacks approve.write`}
+                      title={canApprove ? 'Approve — materialises a Relationship between the candidates' : `Your role (${user?.role}) lacks approve.write`}
                       className="px-3 py-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
                     >
                       {approveBusy && <Spinner />}
@@ -247,9 +269,12 @@ export default function InboxClient() {
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 text-sm">{g.reasoning}</p>
-                <p className="mt-1 text-xs text-emerald-400">expected impact: {g.impact}</p>
-                <div className="mt-1 text-xs text-neutral-500">citations: {g.citations.join(', ')}</div>
+                <p className="mt-3 text-sm leading-relaxed">{g.reasoning}</p>
+                <p className="mt-2 text-xs text-emerald-300">
+                  <span className="text-emerald-400/80 uppercase tracking-wider text-[10px] mr-1">Expected impact</span>
+                  {g.impact}
+                </p>
+                <CitationChipList citations={g.citations} />
               </div>
             );
           })}

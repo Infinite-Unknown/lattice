@@ -2,12 +2,16 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
 import Spinner from '../../components/Spinner';
+import { CitationChipList, type ChipCitation } from '../../components/CitationChip';
+import { humaniseLabel } from '@/lib/format';
 
 type StewardLogEntry = {
   timestamp: string;
   action: string;
   reasoning: string;
+  reasoning_pretty?: string;
   citations: string[];
+  citations_resolved?: ChipCitation[];
   confidence: number;
   approved: boolean;
   dismissed?: boolean;
@@ -219,8 +223,9 @@ export default function RelationshipClient({ id }: { id: string }) {
                 <div className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
                   <span>{new Date(e.timestamp).toLocaleString()}</span>
                   <span>·</span>
-                  <span>action: <span className="text-emerald-400">{e.action}</span></span>
-                  <span>·</span>
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-[11px] font-medium">
+                    {humaniseLabel(e.action)}
+                  </span>
                   <span>conf {e.confidence.toFixed(2)}</span>
                   <span>·</span>
                   <span className={statusColor}>
@@ -234,8 +239,8 @@ export default function RelationshipClient({ id }: { id: string }) {
                     </span>
                   )}
                 </div>
-                <div className="text-sm mt-1">{e.reasoning}</div>
-                <div className="text-xs text-neutral-500 mt-1">citations: {e.citations.join(', ')}</div>
+                <div className="text-sm mt-2 leading-relaxed">{e.reasoning_pretty ?? e.reasoning}</div>
+                <CitationChipList citations={e.citations_resolved ?? []} />
               </div>
             );
           })}
