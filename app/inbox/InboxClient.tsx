@@ -4,6 +4,7 @@ import { useAuth } from '../AuthContext';
 import Spinner from '../components/Spinner';
 import { CitationChipList, type ChipCitation } from '../components/CitationChip';
 import { humaniseLabel } from '@/lib/format';
+import ApprovalResultModal, { type ApprovalResult } from './ApprovalResultModal';
 
 type InboxData = {
   pendingActions: Array<{
@@ -34,6 +35,7 @@ export default function InboxClient() {
   const [scanning, setScanning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: 'success' | 'info' | 'error'; message: string; href?: string } | null>(null);
+  const [approvalResult, setApprovalResult] = useState<ApprovalResult | null>(null);
 
   // Auto-dismiss toast after a few seconds.
   useEffect(() => {
@@ -96,7 +98,11 @@ export default function InboxClient() {
     }
   }
 
-  async function decideProposal(proposalId: string, decision: 'approve' | 'dismiss') {
+  async function decideProposal(
+    proposal: InboxData['gaps'][number],
+    decision: 'approve' | 'dismiss',
+  ) {
+    const proposalId = proposal.proposalId;
     const key = `p:${proposalId}:${decision}`;
     setBusyId(key);
     try {
@@ -107,10 +113,23 @@ export default function InboxClient() {
       });
       const j = await res.json().catch(() => ({}));
       if (decision === 'approve' && res.ok) {
-        setToast({
-          kind: j.materialized ? 'success' : 'info',
-          message: j.message ?? 'Proposal approved.',
-          href: j.relationshipId ? `/relationships/${j.relationshipId}` : undefined,
+        // Persistent modal — stays open until the user closes it.
+        // We compute the remaining count from current state minus this one.
+        setApprovalResult({
+          proposal: {
+            proposalId: proposal.proposalId,
+            gapType: proposal.gapType,
+            candidates: proposal.candidates,
+            reasoning: proposal.reasoning,
+            impact: proposal.impact,
+          },
+          response: {
+            ok: !!j.ok,
+            materialized: !!j.materialized,
+            relationshipId: j.relationshipId ?? null,
+            message: j.message ?? 'Proposal approved.',
+          },
+          remainingProposals: Math.max(0, (data?.gaps.length ?? 1) - 1),
         });
       } else if (decision === 'dismiss' && res.ok) {
         setToast({ kind: 'info', message: 'Proposal dismissed.' });
@@ -250,7 +269,7 @@ export default function InboxClient() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
-                      onClick={() => decideProposal(g.proposalId, 'dismiss')}
+                      onClick={() => decideProposal(g, 'dismiss')}
                       disabled={!canApprove || !!busyId}
                       title={canApprove ? 'Dismiss this gap' : `Your role (${user?.role}) lacks approve.write`}
                       className="px-3 py-1 rounded border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
@@ -259,7 +278,7 @@ export default function InboxClient() {
                       Dismiss
                     </button>
                     <button
-                      onClick={() => decideProposal(g.proposalId, 'approve')}
+                      onClick={() => decideProposal(g, 'approve')}
                       disabled={!canApprove || !!busyId}
                       title={canApprove ? 'Approve — materialises a Relationship between the candidates' : `Your role (${user?.role}) lacks approve.write`}
                       className="px-3 py-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
@@ -280,6 +299,14 @@ export default function InboxClient() {
           })}
         </div>
       )}
+
+      {/* Persistent modal that opens after a Cartographer proposal is approved.
+          Stays open until the user closes it; the new relationship link CTA
+          dismisses + navigates. */}
+      <ApprovalResultModal
+        result={approvalResult}
+        onClose={() => setApprovalResult(null)}
+      />
     </div>
   );
 }
