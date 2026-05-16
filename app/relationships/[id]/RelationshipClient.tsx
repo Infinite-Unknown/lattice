@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '../../AuthContext';
 import Spinner from '../../components/Spinner';
+import LatticeLoader from '../../components/LatticeLoader';
 import { CitationChipList, type ChipCitation } from '../../components/CitationChip';
 import { humaniseLabel } from '@/lib/format';
 
@@ -28,6 +30,14 @@ type Data = {
   };
   parties: Array<{ id: string; name: string }>;
   outcomes: Array<{ id: string; type: string; evidence_text: string; timestamp: string; source: string; verified: boolean }>;
+};
+
+const STATE_TONE: Record<string, string> = {
+  active: 'text-foreground',
+  escalated: 'text-accent',
+  tapered: 'text-muted-foreground',
+  closed: 'text-muted-foreground',
+  proposed: 'text-accent',
 };
 
 export default function RelationshipClient({ id }: { id: string }) {
@@ -99,147 +109,195 @@ export default function RelationshipClient({ id }: { id: string }) {
   }
 
   if (notFound) return (
-    <div className="text-neutral-400 max-w-xl">
-      <h1 className="text-2xl font-semibold mb-2 text-neutral-100">Not a real relationship yet</h1>
-      <p>This edge is a Cartographer <span className="text-amber-400">proposal</span> — it doesn&apos;t exist as an active relationship until approved.</p>
-      <p className="mt-2">Head to <a href="/inbox" className="text-emerald-400 underline">Inbox → Cartographer</a> to approve it.</p>
+    <div className="max-w-3xl mx-auto py-16">
+      <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
+        Not yet a relationship
+      </div>
+      <h1 className="font-sans font-bold text-4xl md:text-5xl leading-none tracking-tighter mb-6">
+        This edge is a<br /><span className="text-accent">proposal.</span>
+      </h1>
+      <p className="font-sans text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl mb-8">
+        It's a Cartographer-detected gap that hasn't been approved yet.
+        Approve it in the inbox and a real relationship gets materialised.
+      </p>
+      <Link
+        href="/inbox"
+        className="group inline-flex items-center font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px"
+      >
+        <span className="relative">
+          Open inbox · Cartographer tab →
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+            style={{ transformOrigin: 'left center' }}
+          />
+        </span>
+      </Link>
     </div>
   );
-  if (!data) return <div className="text-neutral-500">Loading…</div>;
+  if (!data) return (
+    <div className="flex items-center justify-center min-h-[50vh]">
+      <LatticeLoader size="lg" label="Loading relationship…" />
+    </div>
+  );
 
   const state = data.relationship.state;
-  const stateColor =
-    state === 'active' ? 'text-emerald-400' :
-    state === 'escalated' ? 'text-rose-400' :
-    state === 'tapered' ? 'text-neutral-400' :
-    state === 'closed' ? 'text-neutral-500' :
-    'text-amber-400';
+  const stateColor = STATE_TONE[state] ?? 'text-muted-foreground';
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div>
-          <div className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2 font-medium">
-            Managed autonomously by a Steward agent
+    <div className="max-w-7xl mx-auto">
+      {/* Page header */}
+      <header className="mb-10 md:mb-12 pb-8 border-b border-border">
+        <div className="flex items-start justify-between gap-6 flex-wrap mb-6">
+          <div className="min-w-0 flex-1">
+            <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
+              Relationship / {humaniseLabel(data.relationship.type)}
+            </div>
+            <h1 className="font-sans font-bold text-3xl md:text-5xl lg:text-6xl leading-none tracking-tighter">
+              {data.parties.map(p => p.name).join(' ↔ ')}
+            </h1>
           </div>
-          <h1 className="text-2xl font-semibold mb-1">{data.parties.map(p => p.name).join(' ↔ ')}</h1>
-          <div className="text-sm text-neutral-400">
-            {data.relationship.type} · state: <span className={stateColor}>{state}</span> · focus: {data.relationship.focus.join(', ') || '—'} · cadence: {data.relationship.cadence}
-          </div>
+
+          {canWriteRelationship && (
+            <div className="flex gap-6 flex-wrap shrink-0">
+              {state === 'active' && (
+                <>
+                  <StateButton onClick={() => transitionState('tapered', 'Taper this relationship? It will keep history but mark engagement as winding down.')} disabled={stateBusy}>
+                    Taper
+                  </StateButton>
+                  <StateButton onClick={() => transitionState('closed', 'Close this relationship? You can reopen later.')} disabled={stateBusy} variant="danger">
+                    Close
+                  </StateButton>
+                </>
+              )}
+              {state === 'tapered' && (
+                <>
+                  <StateButton onClick={() => transitionState('active', 'Reactivate this tapered relationship?')} disabled={stateBusy} variant="accent">
+                    Reactivate
+                  </StateButton>
+                  <StateButton onClick={() => transitionState('closed', 'Close this relationship?')} disabled={stateBusy} variant="danger">
+                    Close
+                  </StateButton>
+                </>
+              )}
+              {state === 'closed' && (
+                <StateButton onClick={() => transitionState('active', 'Reopen this closed relationship?')} disabled={stateBusy} variant="accent">
+                  Reopen
+                </StateButton>
+              )}
+            </div>
+          )}
         </div>
 
-        {canWriteRelationship && (
-          <div className="flex gap-2 flex-wrap justify-end">
-            {state === 'active' && (
-              <>
-                <button
-                  onClick={() => transitionState('tapered', `Taper this relationship? It will keep history but mark engagement as winding down.`)}
-                  disabled={stateBusy}
-                  className="px-3 py-1.5 rounded text-sm border border-neutral-700 hover:bg-neutral-900 disabled:opacity-50"
-                >
-                  Taper
-                </button>
-                <button
-                  onClick={() => transitionState('closed', `Close this relationship? You can reopen it later.`)}
-                  disabled={stateBusy}
-                  className="px-3 py-1.5 rounded text-sm border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-50"
-                >
-                  Close
-                </button>
-              </>
-            )}
-            {state === 'tapered' && (
-              <>
-                <button
-                  onClick={() => transitionState('active', `Reactivate this tapered relationship?`)}
-                  disabled={stateBusy}
-                  className="px-3 py-1.5 rounded text-sm border border-emerald-800/60 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50"
-                >
-                  Reactivate
-                </button>
-                <button
-                  onClick={() => transitionState('closed', `Close this relationship?`)}
-                  disabled={stateBusy}
-                  className="px-3 py-1.5 rounded text-sm border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-50"
-                >
-                  Close
-                </button>
-              </>
-            )}
-            {state === 'closed' && (
-              <button
-                onClick={() => transitionState('active', `Reopen this closed relationship?`)}
-                disabled={stateBusy}
-                className="px-3 py-1.5 rounded text-sm border border-emerald-800/60 text-emerald-300 hover:bg-emerald-950/30 disabled:opacity-50"
-              >
-                Reopen
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+        <div className="grid md:grid-cols-4 gap-px bg-border">
+          <MetaCell label="State">
+            <span className={stateColor}>{state}</span>
+          </MetaCell>
+          <MetaCell label="Type">
+            <span className="text-foreground">{humaniseLabel(data.relationship.type)}</span>
+          </MetaCell>
+          <MetaCell label="Cadence">
+            <span className="text-foreground">{data.relationship.cadence || '—'}</span>
+          </MetaCell>
+          <MetaCell label="Focus">
+            <span className="text-foreground">{data.relationship.focus.join(', ') || '—'}</span>
+          </MetaCell>
+        </div>
+      </header>
 
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setTab('timeline')} className={`px-3 py-1.5 rounded ${tab === 'timeline' ? 'bg-neutral-700' : 'bg-neutral-900'}`}>Timeline</button>
-        <button onClick={() => setTab('steward')} className={`px-3 py-1.5 rounded ${tab === 'steward' ? 'bg-emerald-700' : 'bg-neutral-900'}`}>Steward log</button>
-        <button onClick={() => setTab('policy')} className={`px-3 py-1.5 rounded ${tab === 'policy' ? 'bg-amber-700' : 'bg-neutral-900'}`}>Policy</button>
+      {/* Tabs + run tick */}
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-8 pb-4 border-b border-border">
+        <div className="flex">
+          <TabButton active={tab === 'timeline'} onClick={() => setTab('timeline')}>
+            Timeline <span className="ml-2 text-foreground/70">/ {data.outcomes.length}</span>
+          </TabButton>
+          <TabButton active={tab === 'steward'} onClick={() => setTab('steward')}>
+            Steward log <span className="ml-2 text-foreground/70">/ {data.relationship.steward_log.length}</span>
+          </TabButton>
+          <TabButton active={tab === 'policy'} onClick={() => setTab('policy')}>
+            Policy
+          </TabButton>
+        </div>
         <button
           onClick={tickSteward}
           disabled={!canRun || ticking}
           title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
-          className="ml-auto px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+          className="group inline-flex items-center gap-2.5 font-semibold uppercase tracking-wider text-xs text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {ticking && <Spinner />}
-          {ticking ? 'Steward thinking…' : 'Run Steward tick'}
+          <span className="relative">
+            {ticking ? 'Steward thinking…' : 'Run Steward tick →'}
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden"
+              style={{ transformOrigin: 'left center' }}
+            />
+          </span>
         </button>
       </div>
 
       {tab === 'timeline' && (
-        <ol className="space-y-2">
-          {data.outcomes.map(o => (
-            <li key={o.id} className="border-l-2 border-neutral-800 pl-3 py-1">
-              <div className="text-xs text-neutral-500">{new Date(o.timestamp).toLocaleString()} · {o.type} · {o.source}{o.verified ? ' · verified' : ''}</div>
-              <div className="text-sm">{o.evidence_text}</div>
-            </li>
-          ))}
-        </ol>
+        <div>
+          {data.outcomes.length === 0 ? (
+            <div className="border border-border bg-card p-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              No outcomes yet · approve a Steward action to populate this timeline
+            </div>
+          ) : (
+            <ol className="border-l border-border ml-2">
+              {data.outcomes.map(o => (
+                <li key={o.id} className="relative pl-8 pb-8 last:pb-0">
+                  <span className="absolute -left-[5px] top-1.5 w-2.5 h-2.5 bg-accent" />
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                    {new Date(o.timestamp).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' })}
+                    <span className="text-accent ml-3">{o.type}</span>
+                    <span className="ml-3">{o.source}</span>
+                    {o.verified && <span className="text-foreground ml-3">✓ verified</span>}
+                  </div>
+                  <div className="font-sans text-base md:text-lg text-foreground leading-snug max-w-3xl">
+                    {o.evidence_text}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
       )}
 
       {tab === 'steward' && (
-        <div className="space-y-3">
-          {data.relationship.steward_log.length === 0 && <p className="text-neutral-500 text-sm">No Steward runs yet. Click &quot;Run Steward tick&quot;.</p>}
+        <div className="space-y-px bg-border">
+          {data.relationship.steward_log.length === 0 && (
+            <div className="bg-background p-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              No Steward runs yet · click 'Run Steward tick' above
+            </div>
+          )}
           {data.relationship.steward_log.slice().reverse().map(e => {
             const status = e.approved ? 'approved' : e.dismissed ? 'dismissed' : 'pending';
+            const statusLabel =
+              status === 'approved' ? '✓ Approved' :
+              status === 'dismissed' ? '✗ Dismissed' :
+              '⏳ Pending';
             const statusColor =
-              status === 'approved' ? 'text-emerald-400' :
-              status === 'dismissed' ? 'text-rose-400' :
-              'text-amber-400';
+              status === 'approved' ? 'text-foreground' :
+              status === 'dismissed' ? 'text-muted-foreground' :
+              'text-accent';
             return (
-              <div key={e.timestamp} className={`border rounded p-3 ${
-                status === 'dismissed' ? 'border-rose-900/40 bg-rose-950/10' :
-                status === 'approved' ? 'border-emerald-900/40 bg-emerald-950/10' :
-                'border-neutral-800'
-              }`}>
-                <div className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
-                  <span>{new Date(e.timestamp).toLocaleString()}</span>
-                  <span>·</span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-[11px] font-medium">
-                    {humaniseLabel(e.action)}
-                  </span>
-                  <span>conf {e.confidence.toFixed(2)}</span>
-                  <span>·</span>
-                  <span className={statusColor}>
-                    {status === 'approved' && '✓ approved'}
-                    {status === 'dismissed' && '✗ dismissed'}
-                    {status === 'pending' && '⏳ pending'}
-                  </span>
-                  {e.decided_by_name && e.decided_at && (
-                    <span className="text-neutral-500">
-                      by <span className="text-neutral-300">{e.decided_by_name}</span> at {new Date(e.decided_at).toLocaleTimeString()}
-                    </span>
-                  )}
+              <div key={e.timestamp} className="bg-background p-6 md:p-8">
+                <div className="flex items-baseline justify-between gap-4 flex-wrap mb-3">
+                  <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                    {new Date(e.timestamp).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' })}
+                    <span className="text-accent ml-3">{humaniseLabel(e.action)}</span>
+                    <span className="ml-3">confidence {e.confidence.toFixed(2)}</span>
+                  </div>
+                  <div className={`font-mono text-xs uppercase tracking-widest ${statusColor}`}>
+                    {statusLabel}
+                    {e.decided_by_name && e.decided_at && (
+                      <span className="text-muted-foreground"> · {e.decided_by_name}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-sm mt-2 leading-relaxed">{e.reasoning_pretty ?? e.reasoning}</div>
+                <p className="font-sans text-base text-foreground leading-relaxed max-w-3xl mb-4">
+                  {e.reasoning_pretty ?? e.reasoning}
+                </p>
                 <CitationChipList citations={e.citations_resolved ?? []} />
               </div>
             );
@@ -248,43 +306,131 @@ export default function RelationshipClient({ id }: { id: string }) {
       )}
 
       {tab === 'policy' && (
-        <div className="space-y-4">
+        <div className="space-y-8 max-w-4xl">
           {!canEditPolicy && (
-            <div className="text-xs text-amber-300 border border-amber-900 bg-amber-950/30 rounded p-2">
-              ◉ Your role (<span className="font-medium">{user?.role ?? 'unknown'}</span>) can&apos;t edit policy.
-              Only <span className="font-medium">root</span> and <span className="font-medium">admin</span> have <code className="px-1 rounded bg-neutral-900">policy.write</code>.
+            <div className="border border-border bg-card p-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              Your role · <span className="text-foreground">{user?.role ?? 'unknown'}</span> · can't edit policy. Only root and admin can.
             </div>
           )}
-          <div>
-            <label className="text-sm text-neutral-400">Escalation policy (YAML)</label>
-            <textarea
-              value={escalation}
-              onChange={e => setEscalation(e.target.value)}
-              disabled={!canEditPolicy}
-              className="w-full mt-1 p-3 font-mono text-sm bg-neutral-900 border border-neutral-800 rounded h-40 disabled:opacity-50"
-            />
-          </div>
-          <div>
-            <label className="text-sm text-neutral-400">Sunset policy (YAML)</label>
-            <textarea
-              value={sunset}
-              onChange={e => setSunset(e.target.value)}
-              disabled={!canEditPolicy}
-              className="w-full mt-1 p-3 font-mono text-sm bg-neutral-900 border border-neutral-800 rounded h-40 disabled:opacity-50"
-            />
-          </div>
+          <PolicyEditor
+            label="Escalation policy"
+            hint="when the Steward should ask for an admin signal"
+            value={escalation}
+            onChange={setEscalation}
+            disabled={!canEditPolicy}
+          />
+          <PolicyEditor
+            label="Sunset policy"
+            hint="when the Steward should propose closing or tapering"
+            value={sunset}
+            onChange={setSunset}
+            disabled={!canEditPolicy}
+          />
+
           <button
             onClick={savePolicy}
             disabled={!canEditPolicy || savingPolicy}
             title={canEditPolicy ? undefined : `Your role (${user?.role}) lacks policy.write`}
-            className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+            className="group inline-flex items-center gap-2.5 font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {savingPolicy && <Spinner />}
-            {savingPolicy ? 'Saving…' : 'Save policy'}
+            <span className="relative">
+              {savingPolicy ? 'Saving…' : 'Save policy →'}
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden"
+                style={{ transformOrigin: 'left center' }}
+              />
+            </span>
           </button>
-          <p className="text-xs text-neutral-500">Tip: edit a policy, save, then click &quot;Run Steward tick&quot; — watch the agent reflect your change.</p>
+
+          <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Tip · <span className="normal-case tracking-normal text-foreground/80">edit a policy, save, then run a Steward tick — watch the next reasoning reflect your change</span>
+          </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function MetaCell({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-background p-4">
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+        {label}
+      </div>
+      <div className="font-sans font-semibold text-base md:text-lg leading-snug">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-5 py-3 -mb-px font-mono text-xs uppercase tracking-widest transition-colors duration-150 border-b-2 ${
+        active ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StateButton({
+  onClick, disabled, variant = 'default', children,
+}: {
+  onClick: () => void; disabled?: boolean; variant?: 'default' | 'accent' | 'danger';
+  children: React.ReactNode;
+}) {
+  const color =
+    variant === 'accent' ? 'text-foreground' :
+    variant === 'danger' ? 'text-accent' :
+    'text-muted-foreground hover:text-foreground';
+  const underline =
+    variant === 'accent' ? 'bg-foreground' :
+    variant === 'danger' ? 'bg-accent' :
+    'bg-foreground';
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`group inline-flex items-center font-semibold uppercase tracking-wider text-xs py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed ${color}`}
+    >
+      <span className="relative">
+        {children}
+        <span
+          aria-hidden="true"
+          className={`absolute -bottom-1 left-0 right-0 h-0.5 ${underline} ${variant === 'default' ? 'scale-x-0' : 'scale-x-100'} transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden`}
+          style={{ transformOrigin: 'left center' }}
+        />
+      </span>
+    </button>
+  );
+}
+
+function PolicyEditor({
+  label, hint, value, onChange, disabled,
+}: { label: string; hint: string; value: string; onChange: (v: string) => void; disabled: boolean }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-3">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {label}
+        </div>
+        <div className="font-mono text-xs text-muted-foreground/60 normal-case tracking-normal">
+          {hint}
+        </div>
+      </div>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled}
+        spellCheck={false}
+        className="w-full px-4 py-3 font-mono text-sm bg-input border border-border text-foreground focus:border-accent focus:outline-none disabled:opacity-50 h-40 resize-none"
+      />
     </div>
   );
 }
