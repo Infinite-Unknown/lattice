@@ -255,13 +255,13 @@ export default function LandingClient() {
             </h2>
             <div className="grid lg:grid-cols-12 gap-6 lg:gap-10">
               <p className="lg:col-span-7 font-sans text-base md:text-lg text-muted-foreground leading-relaxed">
-                One Steward per relationship under management. Cost scales
-                with what you actually run, not seat counts. A 200-relationship
-                ecosystem ticking daily costs roughly the same as one team
-                dinner per month.
+                Billed monthly. Cost scales with the number of active
+                relationships you actually run — not seats, not users.
+                Add or remove a relationship, your next invoice reflects it.
+                Unlimited admin seats at every paid tier.
               </p>
               <div className="lg:col-span-5 lg:text-right font-mono text-xs uppercase tracking-widest text-muted-foreground self-end">
-                14-day trial · no card required<br />cancel any time
+                Billed monthly · no annual lock-in<br />cancel any time
               </div>
             </div>
           </div>
@@ -271,7 +271,8 @@ export default function LandingClient() {
               name="Pilot"
               tagline="For one programme, one cohort"
               price="Free"
-              priceSuffix="14-day trial"
+              priceSuffix="for 14 days · no card"
+              priceFloor="Auto-pauses after the trial · upgrade any time"
               ctaLabel="Start free →"
               ctaHref={isSignedIn ? '/dashboard' : '/sign-up'}
               features={[
@@ -285,10 +286,10 @@ export default function LandingClient() {
             <PricingTier
               name="Operator"
               tagline="For accelerators and corporate VCs"
-              price="$5"
-              priceSuffix="per relationship / month"
-              priceFloor="$99/mo minimum · 20 relationships floor"
-              ctaLabel="Talk to us →"
+              price="From $99"
+              priceSuffix="per month · billed monthly"
+              priceFloor="Includes 20 active relationships · then $5/mo each"
+              ctaLabel="Start 14-day trial →"
               ctaHref="/sign-up"
               featured
               features={[
@@ -304,7 +305,8 @@ export default function LandingClient() {
               name="Network"
               tagline="For multi-operator ecosystems"
               price="Custom"
-              priceSuffix="contact sales"
+              priceSuffix="annual contracts · talk to us"
+              priceFloor="Starts at $999/mo · volume pricing above"
               ctaLabel="Contact sales →"
               ctaHref="mailto:hello@lattice.run"
               features={[
@@ -319,26 +321,31 @@ export default function LandingClient() {
             />
           </div>
 
-          {/* Unit economics — editorial small print */}
-          <div className="mt-16 grid md:grid-cols-3 gap-10 md:gap-6 pt-12 border-t border-border">
-            <UnitEconomic
-              n="01"
-              label="Per-Steward cost"
-              value="≈ $0.001"
-              hint="one Gemini call per heartbeat"
-            />
-            <UnitEconomic
-              n="02"
-              label="200-relationship ecosystem"
-              value="≈ $6/mo"
-              hint="daily heartbeats · LLM cost only"
-            />
-            <UnitEconomic
-              n="03"
-              label="Gross margin"
-              value="≥ 95%"
-              hint="Gemini + Firestore + Cloud Run · all free-tier capable at small scale"
-            />
+          {/* Unit economics — what it costs us to run, not what you pay */}
+          <div className="mt-16 pt-12 border-t border-border">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-8">
+              Our cost to run · not your bill
+            </div>
+            <div className="grid md:grid-cols-3 gap-10 md:gap-6">
+              <UnitEconomic
+                n="01"
+                label="Per-Steward COGS"
+                value="≈ $0.001"
+                hint="one Gemini call per heartbeat"
+              />
+              <UnitEconomic
+                n="02"
+                label="200-relationship ecosystem"
+                value="≈ $6/mo"
+                hint="daily heartbeats · LLM cost only"
+              />
+              <UnitEconomic
+                n="03"
+                label="Gross margin"
+                value="≥ 95%"
+                hint="Gemini + Firestore + Cloud Run · free-tier capable at small scale"
+              />
+            </div>
           </div>
         </div>
       </section>
