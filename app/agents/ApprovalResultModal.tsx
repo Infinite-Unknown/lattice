@@ -54,7 +54,7 @@ export default function ApprovalResultModal({
         <p className="font-display text-2xl leading-snug tracking-tight text-foreground">
           {isMaterialised
             ? <>The Cartographer&apos;s gap is now a <span className="text-accent">real relationship</span>.</>
-            : <>The gap is closed, but a new actor is <span className="text-accent">required</span>.</>}
+            : <>The gap is closed, but a new entity is <span className="text-accent">required</span>.</>}
         </p>
 
         {/* Auto-configured details */}
@@ -122,15 +122,15 @@ export default function ApprovalResultModal({
             <SectionLabel>What to do</SectionLabel>
             <ol className="space-y-3 font-sans text-sm">
               <Step n={1}>
-                Cartographer suggested a gap that needs a new actor or hit an
+                Cartographer suggested a gap that needs a new entity or hit an
                 existing duplicate. The proposal is marked recruited in the audit log either way.
               </Step>
               <Step n={2}>
-                If a new actor is needed:{' '}
+                If a new entity is needed:{' '}
                 <Link href="/graph" className="text-accent underline underline-offset-4 decoration-1 hover:opacity-80 transition-opacity" onClick={onClose}>
                   open the Graph
                 </Link>
-                {' '}and use + Add actor, then form the relationship manually.
+                {' '}and use + Add entity, then form the relationship manually.
               </Step>
             </ol>
           </section>

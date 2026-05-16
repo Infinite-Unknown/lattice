@@ -55,7 +55,7 @@ export default function AddActorModal({ open, onClose, onCreated }: { open: bool
   const selectedTypeHint = TYPES.find(t => t.value === type)?.hint ?? '';
 
   return (
-    <Modal open={open} onClose={onClose} title="Add actor">
+    <Modal open={open} onClose={onClose} title="Add entity">
       <form onSubmit={onSubmit} className="space-y-6">
         <Field label="Type" hint={selectedTypeHint}>
           <select
@@ -96,7 +96,7 @@ export default function AddActorModal({ open, onClose, onCreated }: { open: bool
           />
         </Field>
 
-        <Field label="Max capacity units" hint="how many active relationships this actor can sustain">
+        <Field label="Max capacity units" hint="how many active relationships this entity can sustain">
           <Input
             type="number"
             value={String(maxUnits)}
@@ -120,7 +120,7 @@ export default function AddActorModal({ open, onClose, onCreated }: { open: bool
           >
             {loading && <Spinner />}
             <span className="relative">
-              {loading ? 'Creating…' : 'Add actor →'}
+              {loading ? 'Creating…' : 'Add entity →'}
               <span
                 aria-hidden="true"
                 className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden"

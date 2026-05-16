@@ -182,9 +182,9 @@ export default function LandingClient() {
           <div className="grid md:grid-cols-2 gap-px bg-border">
             <ProblemBlock
               n="01"
-              problem="Complex Actor Networks"
+              problem="Complex Entity Networks"
               answer="Live ecosystem graph"
-              body="Every actor, every linkage, in one force-directed view. Click any edge to see its full memory and policy."
+              body="Every entity, every linkage, in one force-directed view. Click any edge to see its full memory and policy."
             />
             <ProblemBlock
               n="02"

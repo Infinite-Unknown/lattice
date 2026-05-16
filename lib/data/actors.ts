@@ -31,3 +31,16 @@ export async function upsertActor(a: Actor): Promise<void> {
   }
   await getAdminDb().collection(COL).doc(a.id).set(a);
 }
+
+/**
+ * Hard-delete an actor doc. Callers MUST handle relationship cascade
+ * themselves (close the relationships first) — this function only deletes
+ * the actor doc itself. Returns false if no doc was deleted (already gone
+ * or cross-tenant).
+ */
+export async function deleteActor(id: string, accountId: string): Promise<boolean> {
+  const existing = await getActor(id, accountId);
+  if (!existing) return false;
+  await getAdminDb().collection(COL).doc(id).delete();
+  return true;
+}
