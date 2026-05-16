@@ -146,6 +146,99 @@ export default function DashboardClient() {
         </div>
       </section>
 
+      {/* Anatomy of a Lattice Relationship */}
+      <section className="mb-12">
+        <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-3 font-medium">
+          What is a Lattice relationship?
+        </div>
+        <div className="border border-neutral-800 rounded-lg p-6 bg-neutral-900/30">
+          <p className="text-neutral-300 mb-5 max-w-3xl leading-relaxed">
+            Today, a mentor-founder pairing is a row in a spreadsheet. In Lattice, it&apos;s a{' '}
+            <span className="text-emerald-300 font-medium">first-class entity</span> with its own
+            schema, its own AI agent, its own memory, and its own governance — defined, automated,
+            governed, and reused across programmes.
+          </p>
+
+          {/* Visual anatomy */}
+          <div className="grid md:grid-cols-[1fr_auto_1fr] gap-4 items-center mb-6">
+            {/* Left party */}
+            <PartyCard color="#34d399" type="Mentor" name="Aisha Rahman" sub="fintech · fundraising · seed" />
+            {/* Edge label */}
+            <div className="text-center">
+              <div className="px-3 py-1.5 rounded-full bg-emerald-900/30 border border-emerald-700/60 text-emerald-300 text-xs whitespace-nowrap inline-block">
+                ⟶ mentorship ⟵
+              </div>
+              <div className="text-xs text-neutral-500 mt-1">bi-weekly · seed-stage</div>
+            </div>
+            {/* Right party */}
+            <PartyCard color="#60a5fa" type="Company" name="PayLane" sub="seed · B2B payments" />
+          </div>
+
+          {/* The relationship's first-class attributes */}
+          <div className="grid md:grid-cols-2 gap-4">
+            <AnatomyBlock
+              label="Schema"
+              accent="emerald"
+              body={
+                <div className="space-y-1 text-sm">
+                  <KV k="type" v="mentorship" />
+                  <KV k="state" v="active" accent="emerald" />
+                  <KV k="focus" v="['fintech', 'fundraising']" />
+                  <KV k="cadence" v="bi-weekly" />
+                </div>
+              }
+              hint="A typed, queryable record — not free text."
+            />
+
+            <AnatomyBlock
+              label="Steward (AI agent)"
+              accent="emerald"
+              body={
+                <div className="text-sm text-neutral-300 space-y-1.5">
+                  <div>↻ reads recent outcomes + retrieves similar past ones via embeddings</div>
+                  <div>↻ reasons with Gemini, picks one action from a 7-action whitelist</div>
+                  <div>↻ cites every claim (outcome:id, profile:actor.field)</div>
+                  <div>↻ surfaces a proposal — never executes without your nod</div>
+                </div>
+              }
+              hint="Per-relationship AI that runs autonomously."
+            />
+
+            <AnatomyBlock
+              label="Policy (programmable)"
+              accent="amber"
+              body={
+                <pre className="text-xs text-neutral-300 bg-neutral-950 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`escalation:
+  triggers:
+    - if: nps_below
+      value: 7
+      action: notify_admin
+
+sunset:
+  triggers:
+    - if: outcome_logged
+      value: closing_note
+      action: close`}</pre>
+              }
+              hint="Edit the YAML, save, and the next Steward tick obeys the new rule."
+            />
+
+            <AnatomyBlock
+              label="Outcomes (memory)"
+              accent="emerald"
+              body={
+                <div className="space-y-1.5 text-xs">
+                  <OutcomeRow type="session_held" text="Series A deck review" age="2 mo ago" />
+                  <OutcomeRow type="intro_made" text="Intro to Maybank Ventures" age="3.5 mo ago" />
+                  <OutcomeRow type="milestone" text="Closed $800k pre-seed" age="4 mo ago" verified />
+                </div>
+              }
+              hint="Every approval becomes citable evidence for the next tick."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Recent activity */}
       <section className="mb-12">
         <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-3 font-medium">
@@ -257,5 +350,52 @@ function ActionCard({
       </div>
       <div className="text-sm text-neutral-400 leading-relaxed">{body}</div>
     </Link>
+  );
+}
+
+function PartyCard({ color, type, name, sub }: { color: string; type: string; name: string; sub: string }) {
+  return (
+    <div className="border border-neutral-800 rounded-lg p-3 bg-neutral-900/50 text-center">
+      <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 mb-1">
+        <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }}></span>
+        {type}
+      </div>
+      <div className="font-medium text-neutral-100">{name}</div>
+      <div className="text-xs text-neutral-500 mt-0.5">{sub}</div>
+    </div>
+  );
+}
+
+function AnatomyBlock({ label, accent, body, hint }: { label: string; accent: 'emerald' | 'amber'; body: React.ReactNode; hint: string }) {
+  const labelColor = accent === 'emerald' ? 'text-emerald-400' : 'text-amber-400';
+  return (
+    <div className="border border-neutral-800 rounded-lg p-3 bg-neutral-950/40">
+      <div className={`text-xs uppercase tracking-wider ${labelColor} mb-2 font-medium`}>{label}</div>
+      <div className="mb-2">{body}</div>
+      <div className="text-xs text-neutral-500 italic">{hint}</div>
+    </div>
+  );
+}
+
+function KV({ k, v, accent }: { k: string; v: string; accent?: 'emerald' }) {
+  return (
+    <div className="flex gap-2">
+      <span className="text-neutral-500">{k}:</span>
+      <span className={accent === 'emerald' ? 'text-emerald-400' : 'text-neutral-200'}>{v}</span>
+    </div>
+  );
+}
+
+function OutcomeRow({ type, text, age, verified }: { type: string; text: string; age: string; verified?: boolean }) {
+  return (
+    <div className="border-l-2 border-emerald-800/60 pl-2">
+      <div className="flex items-center gap-2 text-neutral-500">
+        <span className="text-emerald-400">{type}</span>
+        <span>·</span>
+        <span>{age}</span>
+        {verified && <span className="text-amber-400">✓ verified</span>}
+      </div>
+      <div className="text-neutral-300">{text}</div>
+    </div>
   );
 }
