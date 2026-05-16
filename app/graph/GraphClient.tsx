@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../AuthContext';
+import LatticeLoader from '../components/LatticeLoader';
 import AddActorModal from './AddActorModal';
 import AddRelationshipModal from './AddRelationshipModal';
 
@@ -130,7 +131,11 @@ export default function GraphClient() {
 
   const selectedNode = selectedNodeId ? data?.nodes.find(n => n.id === selectedNodeId) ?? null : null;
 
-  if (!data) return <div className="text-neutral-500 py-8">Loading graph…</div>;
+  if (!data) return (
+    <div className="border border-neutral-800 rounded-lg flex items-center justify-center animate-fade-in" style={{ height: '60vh' }}>
+      <LatticeLoader size="lg" label="Materialising your ecosystem…" />
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -187,7 +192,7 @@ export default function GraphClient() {
         prefilledPartyA={selectedNodeId ?? undefined}
       />
       {/* Graph canvas */}
-      <div ref={canvasContainerRef} className="border border-neutral-800 rounded-lg relative overflow-hidden" style={{ height: '60vh' }}>
+      <div ref={canvasContainerRef} className="border border-neutral-800 rounded-lg relative overflow-hidden animate-fade-in" style={{ height: '60vh' }}>
         <ForceGraph2D
           key={resetKey}
           ref={fgRef}
