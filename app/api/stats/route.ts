@@ -2,17 +2,24 @@ import { NextResponse } from 'next/server';
 import { listActors } from '@/lib/data/actors';
 import { listRelationships } from '@/lib/data/relationships';
 import { listOpenProposals } from '@/lib/data/proposals';
+import { listTodosForAccount } from '@/lib/data/todos';
+import { getCurrentUser } from '@/lib/auth/current-user';
 import { getAdminDb } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [actors, rels, props, outSnap] = await Promise.all([
+  // We don't *require* a user here — /api/stats is read-by-everyone-signed-in
+  // and the existing middleware already gates this route. But we need the
+  // account id to scope todos correctly.
+  const user = await getCurrentUser();
+  const [actors, rels, props, outSnap, todos] = await Promise.all([
     listActors(),
     listRelationships(),
     listOpenProposals(),
     getAdminDb().collection('outcomes').get(),
+    user ? listTodosForAccount(user.account_id) : Promise.resolve([]),
   ]);
 
   // Mirror the inbox's filter exactly — pending = neither approved nor
@@ -39,6 +46,8 @@ export async function GET() {
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, 5);
 
+  const openTodos = todos.filter(t => t.status === 'open').length;
+
   return NextResponse.json({
     actors_total: actors.length,
     actors_by_type: actorsByType,
@@ -47,6 +56,7 @@ export async function GET() {
     pending_proposals: props.length,
     pending_steward_actions: pendingSteward,
     outcomes_total: outSnap.size,
+    open_todos: openTodos,
     recent_outcomes: recentOutcomes,
     // Runtime info — handy for governance + judges. Surfaces the actual
     // model identifier the Steward / Cartographer are calling right now.

@@ -6,6 +6,7 @@ import { signOut as firebaseSignOut } from 'firebase/auth';
 import { getClientAuth } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 import NavInbox from './NavInbox';
+import NavTodos from './NavTodos';
 
 const ROLE_COLOR: Record<string, string> = {
   root: 'bg-amber-900/40 border-amber-700/60 text-amber-200',
@@ -53,6 +54,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/graph">Graph</NavLink>
           <NavInbox />
+          <NavTodos />
           <NavLink href="/audit">Audit</NavLink>
           {/* Only render IAM link once we're confident in the identity —
               prevents flashing 'admin' chrome to a viewer mid-handoff. */}

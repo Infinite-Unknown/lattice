@@ -5,11 +5,12 @@ import {
 } from '@/lib/data/relationships';
 import { upsertOutcome } from '@/lib/data/outcomes';
 import { getProposal, setProposalRecruited, setProposalStatus } from '@/lib/data/proposals';
-import { getActor } from '@/lib/data/actors';
+import { getActor, listActors } from '@/lib/data/actors';
 import { requireUser } from '@/lib/auth/current-user';
 import { writeAuditEntry } from '@/lib/data/audit';
 import { inferRelationshipType, defaultCadenceFor, pickPrincipalPair } from '@/lib/agents/relationship-inference';
-import type { Actor, Relationship, RelationshipState, StewardAction } from '@/lib/types';
+import { newTodoId, upsertTodo } from '@/lib/data/todos';
+import type { Actor, Relationship, RelationshipState, StewardAction, Todo } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +26,24 @@ const ACTION_TO_OUTCOME_TYPE = (a: StewardAction) =>
   : a === 'escalate' ? 'issue'
   : a === 'sunset' ? 'closing_note'
   : 'milestone' as const;
+
+// Which Steward actions, on approval, deserve a follow-up todo item.
+// State-changing actions (taper / sunset) don't — the auto-state-transition
+// IS the work. 'hold' is a no-op by definition.
+const ACTIONS_THAT_NEED_TODOS: StewardAction[] = [
+  'propose-session', 'draft-checkin', 'propose-intro', 'escalate',
+];
+
+function todoTitleFor(action: StewardAction, partyNames: string[]): string {
+  const parties = partyNames.join(' ↔ ') || 'parties';
+  switch (action) {
+    case 'propose-session': return `Schedule session: ${parties}`;
+    case 'draft-checkin':   return `Send check-in to ${parties}`;
+    case 'propose-intro':   return `Make introduction for ${parties}`;
+    case 'escalate':        return `Review escalation: ${parties}`;
+    default:                return `Follow up on ${parties}`;
+  }
+}
 
 const DEFAULT_ESCALATION = `triggers:
   - if: nps_below
@@ -100,12 +119,50 @@ export async function POST(req: Request) {
       );
     }
 
+    // Auto-create a Todo for action types that actually require human follow-up
+    // in the real world (scheduling, sending, introducing, escalating). Skip
+    // taper/sunset/hold because those don't require any further work — the
+    // state transition or no-op IS the outcome.
+    let createdTodoId: string | null = null;
+    if (ACTIONS_THAT_NEED_TODOS.includes(entry.action)) {
+      const allActors = await listActors();
+      const nameOf = new Map(allActors.map(a => [a.id, a.name]));
+      const partyNames = r.parties.map(p => nameOf.get(p) ?? p);
+
+      const todo: Todo = {
+        id: newTodoId(),
+        account_id: user.account_id,
+        relationship_id: r.id,
+        steward_log_timestamp: entry.timestamp,
+        action: entry.action,
+        title: todoTitleFor(entry.action, partyNames),
+        description: entry.reasoning,
+        party_names: partyNames,
+        status: 'open',
+        created_at: now,
+        created_by_user_id: user.id,
+        created_by_name: user.name,
+      };
+      await upsertTodo(todo);
+      createdTodoId = todo.id;
+      await writeAuditEntry(
+        user, 'create_todo', 'todo', todo.id,
+        `Auto-created todo from approved Steward action '${entry.action}' on relationship ${r.id}`,
+      );
+    }
+
     await writeAuditEntry(
       user, 'approve_steward', 'steward_log_entry', `${r.id}:${entry.timestamp}`,
-      `Approved Steward action '${entry.action}' on relationship ${r.id}`,
+      `Approved Steward action '${entry.action}' on relationship ${r.id}${createdTodoId ? ` (spawned todo ${createdTodoId})` : ''}`,
     );
 
-    return NextResponse.json({ ok: true, outcomeId, stateChanged: !!stateChanged, newState });
+    return NextResponse.json({
+      ok: true,
+      outcomeId,
+      stateChanged: !!stateChanged,
+      newState,
+      todoId: createdTodoId,
+    });
   }
 
   // ---------------- Steward log: dismiss ----------------

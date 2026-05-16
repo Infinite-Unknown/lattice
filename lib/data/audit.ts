@@ -14,9 +14,12 @@ export type AuditAction =
   | 'edit_policy'
   | 'create_iam_user'
   | 'revoke_iam_user'
-  | 'auto_state_transition';
+  | 'auto_state_transition'
+  | 'create_todo'
+  | 'complete_todo'
+  | 'dispatch_todo';
 
-export type AuditTargetKind = 'relationship' | 'actor' | 'proposal' | 'iam_user' | 'steward_log_entry';
+export type AuditTargetKind = 'relationship' | 'actor' | 'proposal' | 'iam_user' | 'steward_log_entry' | 'todo';
 
 export interface AuditLogEntry {
   id: string;

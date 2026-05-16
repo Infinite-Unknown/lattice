@@ -98,3 +98,35 @@ export interface CartographerGap {
   proposed_focus?: string[];
   proposed_cadence?: string;
 }
+
+// ------------------------------------------------------------------
+// Todo — actionable follow-ups created from approved Steward proposals.
+// Every approved propose-session / draft-checkin / propose-intro /
+// escalate spawns one of these. Lives in its own /todos surface so the
+// admin has a single place to actually execute (or notify others to
+// execute) the work the AI proposed.
+// ------------------------------------------------------------------
+export type TodoStatus = 'open' | 'done';
+export type DispatchChannel = 'email' | 'calendar' | 'slack';
+
+export interface Todo {
+  id: string;
+  account_id: string;
+  relationship_id: string;
+  steward_log_timestamp: string;     // links back to the originating log entry
+  action: StewardAction;             // the approved action that spawned this
+  title: string;                     // short human-readable summary
+  description: string;               // longer — typically the steward's reasoning
+  party_names: string[];             // who's involved (cached for display)
+  status: TodoStatus;
+  created_at: string;
+  created_by_user_id: string;
+  created_by_name: string;
+  completed_at?: string;
+  completed_by_name?: string;
+  // Dispatch is separate from completion — recording that we notified the
+  // parties via a channel doesn't mean the underlying work is done.
+  dispatched_via?: DispatchChannel;
+  dispatched_at?: string;
+  dispatched_by_name?: string;
+}
