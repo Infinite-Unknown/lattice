@@ -12,6 +12,7 @@ type Stats = {
   pending_steward_actions: number;
   outcomes_total: number;
   recent_outcomes: Array<{ id: string; timestamp: string; type: string; evidence_text: string; relationship_id: string }>;
+  runtime?: { gemini_chat_model: string; gemini_embed_model: string };
 };
 
 export default function DashboardClient() {
@@ -55,6 +56,14 @@ export default function DashboardClient() {
         <div className="text-neutral-500">
           {new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
+        {stats?.runtime && (
+          <div
+            className="px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400 font-mono"
+            title={`Chat: ${stats.runtime.gemini_chat_model} · Embeddings: ${stats.runtime.gemini_embed_model}`}
+          >
+            ⚙ {stats.runtime.gemini_chat_model}
+          </div>
+        )}
         <button
           onClick={refresh}
           className="ml-auto px-3 py-1 rounded text-xs bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300"

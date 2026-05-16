@@ -44,5 +44,11 @@ export async function GET() {
     pending_steward_actions: pendingSteward,
     outcomes_total: outSnap.size,
     recent_outcomes: recentOutcomes,
+    // Runtime info — handy for governance + judges. Surfaces the actual
+    // model identifier the Steward / Cartographer are calling right now.
+    runtime: {
+      gemini_chat_model: process.env.GEMINI_MODEL ?? 'gemini-2.5-pro',
+      gemini_embed_model: process.env.GEMINI_EMBED_MODEL ?? 'gemini-embedding-001',
+    },
   });
 }
