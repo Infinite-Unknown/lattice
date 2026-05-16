@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from './AuthContext';
+import { useCountUp } from './hooks/useCountUp';
+import { SkeletonStats } from './components/Skeleton';
 
 type Stats = {
   actors_total: number;
@@ -34,6 +36,13 @@ export default function DashboardClient() {
   useEffect(() => { refresh(); }, []);
 
   const pending = (stats?.pending_steward_actions ?? 0) + (stats?.pending_proposals ?? 0);
+
+  // Count-up animations for the stats strip. Snap to value after first
+  // animation, so subsequent polls don't re-animate.
+  const actorCount     = useCountUp(stats?.actors_total ?? 0);
+  const relCount       = useCountUp(stats?.relationships_active ?? 0);
+  const pendingCount   = useCountUp(pending);
+  const outcomesCount  = useCountUp(stats?.outcomes_total ?? 0);
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -73,29 +82,33 @@ export default function DashboardClient() {
       </div>
 
       {/* Stats strip */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        <Stat
-          label="Actors managed"
-          value={stats?.actors_total}
-          hint={stats ? `${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners` : '—'}
-        />
-        <Stat
-          label="Active relationships"
-          value={stats?.relationships_active}
-          hint="each one is an AI Steward"
-        />
-        <Stat
-          label="Decisions awaiting you"
-          value={pending}
-          hint={pending > 0 ? 'review them in the Inbox' : 'all caught up'}
-          accent={pending > 0 ? 'amber' : undefined}
-        />
-        <Stat
-          label="Outcomes captured"
-          value={stats?.outcomes_total}
-          hint="memory for future matching"
-        />
-      </section>
+      {stats ? (
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 animate-fade-in">
+          <Stat
+            label="Actors managed"
+            value={actorCount}
+            hint={`${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners`}
+          />
+          <Stat
+            label="Active relationships"
+            value={relCount}
+            hint="each one is an AI Steward"
+          />
+          <Stat
+            label="Decisions awaiting you"
+            value={pendingCount}
+            hint={pending > 0 ? 'review them in the Inbox' : 'all caught up'}
+            accent={pending > 0 ? 'amber' : undefined}
+          />
+          <Stat
+            label="Outcomes captured"
+            value={outcomesCount}
+            hint="memory for future matching"
+          />
+        </section>
+      ) : (
+        <SkeletonStats className="mb-8" />
+      )}
 
       {error && (
         <div className="mb-8 p-3 rounded border border-rose-900 bg-rose-950/30 text-rose-300 text-sm">
