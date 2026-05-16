@@ -50,7 +50,10 @@ export default function RelationshipClient({ id }: { id: string }) {
   if (!data) return <div className="text-neutral-500">Loading…</div>;
 
   return (
-    <div>
+    <div className="max-w-6xl mx-auto">
+      <div className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2 font-medium">
+        Managed autonomously by a Steward agent
+      </div>
       <h1 className="text-2xl font-semibold mb-1">{data.parties.map(p => p.name).join(' ↔ ')}</h1>
       <div className="text-sm text-neutral-400 mb-4">
         {data.relationship.type} · state: <span className="text-emerald-400">{data.relationship.state}</span> · focus: {data.relationship.focus.join(', ')} · cadence: {data.relationship.cadence}

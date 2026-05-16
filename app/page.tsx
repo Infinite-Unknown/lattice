@@ -1,2 +1,5 @@
-import { redirect } from 'next/navigation';
-export default function Home() { redirect('/graph'); }
+import DashboardClient from './DashboardClient';
+
+export default function HomePage() {
+  return <DashboardClient />;
+}
