@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../AuthContext';
 
 type Data = {
   relationship: {
@@ -13,6 +14,9 @@ type Data = {
 };
 
 export default function RelationshipClient({ id }: { id: string }) {
+  const { can, user } = useAuth();
+  const canRun = can('steward.run');
+  const canEditPolicy = can('policy.write');
   const [data, setData] = useState<Data | null>(null);
   const [escalation, setEscalation] = useState('');
   const [sunset, setSunset] = useState('');
@@ -63,7 +67,14 @@ export default function RelationshipClient({ id }: { id: string }) {
         <button onClick={() => setTab('timeline')} className={`px-3 py-1.5 rounded ${tab === 'timeline' ? 'bg-neutral-700' : 'bg-neutral-900'}`}>Timeline</button>
         <button onClick={() => setTab('steward')} className={`px-3 py-1.5 rounded ${tab === 'steward' ? 'bg-emerald-700' : 'bg-neutral-900'}`}>Steward log</button>
         <button onClick={() => setTab('policy')} className={`px-3 py-1.5 rounded ${tab === 'policy' ? 'bg-amber-700' : 'bg-neutral-900'}`}>Policy</button>
-        <button onClick={tickSteward} className="ml-auto px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800">Run Steward tick</button>
+        <button
+          onClick={tickSteward}
+          disabled={!canRun}
+          title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
+          className="ml-auto px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Run Steward tick
+        </button>
       </div>
 
       {tab === 'timeline' && (
@@ -92,18 +103,39 @@ export default function RelationshipClient({ id }: { id: string }) {
 
       {tab === 'policy' && (
         <div className="space-y-4">
+          {!canEditPolicy && (
+            <div className="text-xs text-amber-300 border border-amber-900 bg-amber-950/30 rounded p-2">
+              ◉ Your role (<span className="font-medium">{user?.role ?? 'unknown'}</span>) can&apos;t edit policy.
+              Only <span className="font-medium">root</span> and <span className="font-medium">admin</span> have <code className="px-1 rounded bg-neutral-900">policy.write</code>.
+            </div>
+          )}
           <div>
             <label className="text-sm text-neutral-400">Escalation policy (YAML)</label>
-            <textarea value={escalation} onChange={e => setEscalation(e.target.value)}
-              className="w-full mt-1 p-3 font-mono text-sm bg-neutral-900 border border-neutral-800 rounded h-40" />
+            <textarea
+              value={escalation}
+              onChange={e => setEscalation(e.target.value)}
+              disabled={!canEditPolicy}
+              className="w-full mt-1 p-3 font-mono text-sm bg-neutral-900 border border-neutral-800 rounded h-40 disabled:opacity-50"
+            />
           </div>
           <div>
             <label className="text-sm text-neutral-400">Sunset policy (YAML)</label>
-            <textarea value={sunset} onChange={e => setSunset(e.target.value)}
-              className="w-full mt-1 p-3 font-mono text-sm bg-neutral-900 border border-neutral-800 rounded h-40" />
+            <textarea
+              value={sunset}
+              onChange={e => setSunset(e.target.value)}
+              disabled={!canEditPolicy}
+              className="w-full mt-1 p-3 font-mono text-sm bg-neutral-900 border border-neutral-800 rounded h-40 disabled:opacity-50"
+            />
           </div>
-          <button onClick={savePolicy} className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600">Save policy</button>
-          <p className="text-xs text-neutral-500">Tip: edit a policy, save, then click "Run Steward tick" — watch the agent reflect your change.</p>
+          <button
+            onClick={savePolicy}
+            disabled={!canEditPolicy}
+            title={canEditPolicy ? undefined : `Your role (${user?.role}) lacks policy.write`}
+            className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Save policy
+          </button>
+          <p className="text-xs text-neutral-500">Tip: edit a policy, save, then click &quot;Run Steward tick&quot; — watch the agent reflect your change.</p>
         </div>
       )}
     </div>

@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useAuth } from '../AuthContext';
 
 type InboxData = {
   pendingActions: Array<{ kind: 'steward'; relationshipId: string; relationshipLabel: string; timestamp: string; action: string; reasoning: string; citations: string[]; confidence: number; }>;
@@ -7,6 +8,10 @@ type InboxData = {
 };
 
 export default function InboxClient() {
+  const { can, user } = useAuth();
+  const canRun = can('steward.run');
+  const canScan = can('cartographer.run');
+  const canApprove = can('approve.write');
   const [data, setData] = useState<InboxData | null>(null);
   const [tab, setTab] = useState<'steward' | 'cartographer'>('steward');
 
@@ -55,10 +60,29 @@ export default function InboxClient() {
         <button onClick={() => setTab('steward')} className={`px-3 py-1.5 rounded ${tab === 'steward' ? 'bg-emerald-700' : 'bg-neutral-800'}`}>Steward proposals ({data.pendingActions.length})</button>
         <button onClick={() => setTab('cartographer')} className={`px-3 py-1.5 rounded ${tab === 'cartographer' ? 'bg-amber-700' : 'bg-neutral-800'}`}>Cartographer gaps ({data.gaps.length})</button>
         <div className="ml-auto flex gap-2">
-          <button onClick={tickAll} className="px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800">Run Steward tick</button>
-          <button onClick={scanGaps} className="px-3 py-1.5 rounded bg-amber-900 hover:bg-amber-800">Run Cartographer scan</button>
+          <button
+            onClick={tickAll}
+            disabled={!canRun}
+            title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
+            className="px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Run Steward tick
+          </button>
+          <button
+            onClick={scanGaps}
+            disabled={!canScan}
+            title={canScan ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks cartographer.run`}
+            className="px-3 py-1.5 rounded bg-amber-900 hover:bg-amber-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Run Cartographer scan
+          </button>
         </div>
       </div>
+      {!canRun && !canApprove && (
+        <div className="mb-4 text-xs text-neutral-500 border border-neutral-800 rounded p-2">
+          ◉ You&apos;re signed in as <span className="text-neutral-300 font-medium">{user?.role}</span>. This is a read-only role — actions are disabled.
+        </div>
+      )}
 
       {tab === 'steward' && (
         <div className="space-y-3">
@@ -70,7 +94,14 @@ export default function InboxClient() {
                   <div className="font-medium">{a.relationshipLabel}</div>
                   <div className="text-xs text-neutral-400">action: <span className="text-emerald-400">{a.action}</span> · confidence {a.confidence.toFixed(2)}</div>
                 </div>
-                <button onClick={() => approveSteward(a.relationshipId, a.timestamp)} className="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-sm">Approve</button>
+                <button
+                  onClick={() => approveSteward(a.relationshipId, a.timestamp)}
+                  disabled={!canApprove}
+                  title={canApprove ? undefined : `Your role (${user?.role}) lacks approve.write`}
+                  className="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                >
+                  Approve
+                </button>
               </div>
               <p className="mt-2 text-sm">{a.reasoning}</p>
               <div className="mt-1 text-xs text-neutral-500">citations: {a.citations.join(', ')}</div>
@@ -89,7 +120,14 @@ export default function InboxClient() {
                   <div className="font-medium"><span className="text-amber-400">{g.gapType}</span></div>
                   <div className="text-xs text-neutral-400">candidates: {g.candidates.join(', ')} · confidence {g.confidence.toFixed(2)}</div>
                 </div>
-                <button onClick={() => approveProposal(g.proposalId)} className="px-3 py-1 rounded bg-amber-700 hover:bg-amber-600 text-sm">Approve</button>
+                <button
+                  onClick={() => approveProposal(g.proposalId)}
+                  disabled={!canApprove}
+                  title={canApprove ? undefined : `Your role (${user?.role}) lacks approve.write`}
+                  className="px-3 py-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm"
+                >
+                  Approve
+                </button>
               </div>
               <p className="mt-2 text-sm">{g.reasoning}</p>
               <p className="mt-1 text-xs text-emerald-400">expected impact: {g.impact}</p>

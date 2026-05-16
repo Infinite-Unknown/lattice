@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useAuth } from './AuthContext';
 
 type Stats = {
   actors_total: number;
@@ -14,6 +15,7 @@ type Stats = {
 };
 
 export default function DashboardClient() {
+  const { user, account } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,9 +58,20 @@ export default function DashboardClient() {
 
       {/* Persona context bar */}
       <div className="mb-10 flex items-center gap-3 text-sm flex-wrap">
-        <div className="px-3 py-1.5 rounded-full bg-emerald-900/30 border border-emerald-800/60 text-emerald-300 font-medium">
-          ◉ Signed in as: Programme Admin · Cradle Catalyst
-        </div>
+        {user ? (
+          <div className={`px-3 py-1.5 rounded-full border font-medium ${
+            user.role === 'root' ? 'bg-amber-900/30 border-amber-800/60 text-amber-300'
+            : user.role === 'admin' ? 'bg-emerald-900/30 border-emerald-800/60 text-emerald-300'
+            : user.role === 'approver' ? 'bg-blue-900/30 border-blue-800/60 text-blue-300'
+            : 'bg-neutral-900 border-neutral-700 text-neutral-300'
+          }`}>
+            ◉ Signed in as: {user.name} · {user.role}{account ? ` @ ${account.name}` : ''}
+          </div>
+        ) : (
+          <div className="px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-500">
+            Loading identity…
+          </div>
+        )}
         <div className="text-neutral-500">
           {new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>

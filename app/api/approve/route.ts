@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import { getRelationship, upsertRelationship } from '@/lib/data/relationships';
 import { upsertOutcome } from '@/lib/data/outcomes';
 import { setProposalStatus } from '@/lib/data/proposals';
+import { requireUser } from '@/lib/auth/current-user';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
+  const auth = await requireUser(['approve.write']);
+  if ('error' in auth) return auth.error;
+
   const body = await req.json();
   if (body.kind === 'steward-log') {
     const r = await getRelationship(body.relationshipId);
