@@ -9,3 +9,5 @@ dist
 *.tsbuildinfo
 # Firebase Admin SDK service-account keys — never commit these
 *-firebase-adminsdk-*.json
+# Hackathon-provided materials — Cradle's copyright, not ours to publish
+Participant InfoPack/
