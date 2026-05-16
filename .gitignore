@@ -1,13 +1,105 @@
-node_modules
-.env
-.env.local
-.DS_Store
-.next
-out
-dist
-*.log
+# ────────────────────────────────────────────────────────────────────
+#  Lattice .gitignore
+#  Keep this repo clean for the GitHub submission — no secrets, no
+#  vendor/hackathon materials, no per-machine local state.
+# ────────────────────────────────────────────────────────────────────
+
+# ── Node / build artefacts ─────────────────────────────────────────
+node_modules/
+.next/
+out/
+dist/
+build/
 *.tsbuildinfo
-# Firebase Admin SDK service-account keys — never commit these
+
+# Alternate package manager lockfiles (we use npm; reject others to avoid
+# accidental dual-tracking)
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# ── Env files (NEVER commit secrets) ───────────────────────────────
+.env
+.env.*
+!.env.local.example
+!.env.example
+
+# ── Firebase Admin SDK service-account keys ───────────────────────
+# Match the file Firebase Console exports: <project>-firebase-adminsdk-*.json
 *-firebase-adminsdk-*.json
-# Hackathon-provided materials — Cradle's copyright, not ours to publish
+serviceAccount*.json
+firebase-service-account*.json
+
+# ── Logs ───────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── Test / coverage output ─────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+.vitest-cache/
+
+# ── OS detritus ────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── Editor / IDE configs (per-user, not project) ──────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.sublime-workspace
+*.sublime-project
+.project
+.classpath
+*~
+\#*\#
+.\#*
+
+# ── AI coding agents — keep their per-machine state out of the repo
+#    EXCEPT CLAUDE.md, which IS the intentional shared project memory.
+.claude/                       # Claude Code local state
+.cursor/                       # Cursor IDE
+.cursorrules                   # Cursor per-machine rules
+.cursorignore
+.windsurfrules                 # Windsurf
+.aider*                        # Aider AI assistant
+.continue/                     # Continue.dev
+.codeium/                      # Codeium
+.copilotignore
+MEMORY (Claude)/               # Stray local Claude memory folder
+.anthropic/
+.gemini/
+.openai/
+
+# Per-session AI transcripts / journal files that occasionally land in cwd
+*.claude-session.md
+*.transcript.md
+
+# ── Hackathon-provided materials — Cradle's copyright ─────────────
 Participant InfoPack/
+
+# ── Miscellaneous temp / backup files ──────────────────────────────
+*.bak
+*.tmp
+*.temp
+*.orig
+.cache/
+tmp/
+temp/
+
+# ── Local dev / smoke-test scripts that aren't part of the product ─
+scripts-tmp-*
+*.local.ts
+*.local.tsx
