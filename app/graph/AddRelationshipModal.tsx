@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
+import Input from '../components/Input';
+import Spinner from '../components/Spinner';
 
 const TYPES = [
   { value: 'mentorship', label: 'Mentorship (mentor ↔ founder)' },
@@ -10,6 +12,8 @@ const TYPES = [
 ] as const;
 
 type NodeOption = { id: string; name: string; type: string };
+
+const SELECT_CLASSES = 'block w-full h-12 px-4 text-base font-sans bg-input border border-border text-foreground focus:border-accent focus:outline-none transition-colors duration-150';
 
 export default function AddRelationshipModal({
   open, onClose, onCreated, actors, prefilledPartyA,
@@ -28,7 +32,6 @@ export default function AddRelationshipModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sync prefilled party A when the modal opens (or when selection changes upstream).
   useEffect(() => {
     if (open && prefilledPartyA) setPartyA(prefilledPartyA);
   }, [open, prefilledPartyA]);
@@ -69,67 +72,101 @@ export default function AddRelationshipModal({
     }
   }
 
-  // Smart default ordering: for mentorship, suggest mentor first; for company-in-programme, company first; etc.
   const sortedActors = [...actors].sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <Modal open={open} onClose={onClose} title="Form a new relationship">
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-6">
         <Field label="Relationship type">
           <select
             value={type}
             onChange={e => setType(e.target.value as any)}
-            className="w-full p-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
+            className={SELECT_CLASSES}
           >
             {TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Party 1">
-            <ActorSelect value={partyA} onChange={setPartyA} actors={sortedActors} />
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Party 01">
+            <select
+              value={partyA}
+              onChange={e => setPartyA(e.target.value)}
+              required
+              className={SELECT_CLASSES}
+            >
+              <option value="">— Select —</option>
+              {sortedActors.map(a => (
+                <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
+              ))}
+            </select>
           </Field>
-          <Field label="Party 2">
-            <ActorSelect value={partyB} onChange={setPartyB} actors={sortedActors} />
+          <Field label="Party 02">
+            <select
+              value={partyB}
+              onChange={e => setPartyB(e.target.value)}
+              required
+              className={SELECT_CLASSES}
+            >
+              <option value="">— Select —</option>
+              {sortedActors.map(a => (
+                <option key={a.id} value={a.id}>{a.name} ({a.type})</option>
+              ))}
+            </select>
           </Field>
         </div>
 
-        <Field label="Focus tags" hint="comma-separated — what is this relationship about?">
-          <input
+        <Field label="Focus tags" hint="comma-separated · what is this relationship about?">
+          <Input
             type="text"
             value={focus}
             onChange={e => setFocus(e.target.value)}
             placeholder="fintech, fundraising"
-            className="w-full p-2 bg-neutral-900 border border-neutral-800 rounded text-sm font-mono"
+            className="font-mono"
           />
         </Field>
 
         <Field label="Cadence" hint="how often the parties should engage">
-          <input
+          <Input
             type="text"
             value={cadence}
             onChange={e => setCadence(e.target.value)}
             placeholder="bi-weekly | monthly | quarterly | as-needed"
-            className="w-full p-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
           />
         </Field>
 
-        <div className="text-xs text-neutral-500 border border-neutral-800 bg-neutral-900/40 rounded p-2">
-          Default escalation + sunset policies will be applied. Edit them on the Policy tab of the new relationship if you want different triggers.
+        <div className="border border-border bg-card p-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          Default escalation + sunset policies applied · edit them on the new relationship's policy tab
         </div>
 
         {error && (
-          <div className="text-sm text-rose-300 border border-rose-900 bg-rose-950/30 rounded p-2">{error}</div>
+          <div className="border border-accent bg-accent/10 p-3 font-mono text-xs uppercase tracking-widest text-accent">
+            {error}
+          </div>
         )}
 
-        <div className="flex gap-2 justify-end">
-          <button type="button" onClick={onClose} className="px-4 py-2 rounded border border-neutral-800 text-sm hover:bg-neutral-900">Cancel</button>
+        <div className="flex items-center gap-8 pt-4 border-t border-border">
           <button
             type="submit"
             disabled={loading || !partyA || !partyB || partyA === partyB}
-            className="px-4 py-2 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-sm font-medium"
+            className="group inline-flex items-center gap-2 font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading ? 'Creating…' : 'Form relationship'}
+            {loading && <Spinner />}
+            <span className="relative">
+              {loading ? 'Creating…' : 'Form relationship →'}
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden"
+                style={{ transformOrigin: 'left center' }}
+              />
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-150"
+          >
+            Cancel
           </button>
         </div>
       </form>
@@ -137,30 +174,12 @@ export default function AddRelationshipModal({
   );
 }
 
-function ActorSelect({ value, onChange, actors }: { value: string; onChange: (v: string) => void; actors: NodeOption[] }) {
-  return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      required
-      className="w-full p-2 bg-neutral-900 border border-neutral-800 rounded text-sm"
-    >
-      <option value="">— Select an actor —</option>
-      {actors.map(a => (
-        <option key={a.id} value={a.id}>
-          {a.name} ({a.type})
-        </option>
-      ))}
-    </select>
-  );
-}
-
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <div className="text-xs text-neutral-300 mb-1 font-medium">{label}</div>
-      {hint && <div className="text-xs text-neutral-500 mb-1">{hint}</div>}
-      {children}
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
+      {hint && <div className="font-mono text-xs text-muted-foreground/60 normal-case tracking-normal mt-1">{hint}</div>}
+      <div className="mt-3">{children}</div>
     </label>
   );
 }

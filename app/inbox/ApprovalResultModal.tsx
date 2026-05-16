@@ -45,91 +45,73 @@ export default function ApprovalResultModal({
       open={!!result}
       onClose={onClose}
       title={isMaterialised
-        ? 'Relationship created and auto-configured'
-        : 'Proposal approved — manual follow-up needed'}
+        ? 'Relationship materialised'
+        : 'Proposal approved · manual follow-up needed'}
       width="max-w-2xl"
     >
-      <div className="space-y-5">
-        {/* Status banner */}
-        <div className={`rounded-lg border p-3 text-sm ${
-          isMaterialised
-            ? 'border-emerald-800/60 bg-emerald-950/30 text-emerald-200'
-            : 'border-amber-800/60 bg-amber-950/30 text-amber-200'
-        }`}>
-          <div className="flex items-start gap-2">
-            <span className="text-base leading-none mt-0.5">
-              {isMaterialised ? '✓' : 'ℹ'}
-            </span>
-            <span>{response.message}</span>
-          </div>
-        </div>
+      <div className="space-y-6">
+        {/* Status line — bold serif because this is the headline moment */}
+        <p className="font-display text-2xl leading-snug tracking-tight text-foreground">
+          {isMaterialised
+            ? <>The Cartographer&apos;s gap is now a <span className="text-accent">real relationship</span>.</>
+            : <>The gap is closed, but a new actor is <span className="text-accent">required</span>.</>}
+        </p>
 
-        {/* Auto-configured details — the headline section when materialised */}
+        {/* Auto-configured details */}
         {isMaterialised && rel && (
           <section>
-            <SectionLabel>What we set up automatically</SectionLabel>
-            <div className="border border-emerald-900/40 rounded p-4 bg-emerald-950/10 text-sm space-y-3">
-              <div className="grid grid-cols-[7rem_1fr] gap-y-2 items-baseline">
-                <KvKey>Parties</KvKey>
-                <KvValue>
-                  <span className="text-neutral-100 font-medium">{rel.parties[0]?.name}</span>
-                  <span className="text-neutral-500"> ({rel.parties[0]?.type})</span>
-                  <span className="mx-2 text-neutral-500">↔</span>
-                  <span className="text-neutral-100 font-medium">{rel.parties[1]?.name}</span>
-                  <span className="text-neutral-500"> ({rel.parties[1]?.type})</span>
-                </KvValue>
-
-                <KvKey>Type</KvKey>
-                <KvValue><Chip>{humaniseLabel(rel.type)}</Chip></KvValue>
-
-                <KvKey>State</KvKey>
-                <KvValue><Chip color="emerald">Active</Chip></KvValue>
-
-                <KvKey>Cadence</KvKey>
-                <KvValue><Chip>{rel.cadence}</Chip></KvValue>
-
-                <KvKey>Focus</KvKey>
-                <KvValue>
-                  {rel.focus.length === 0 ? (
-                    <span className="text-neutral-500 italic">none — model didn&apos;t suggest any</span>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {rel.focus.map(f => <Chip key={f} color="amber">{f}</Chip>)}
-                    </div>
-                  )}
-                </KvValue>
-
-                <KvKey>Policies</KvKey>
-                <KvValue className="text-neutral-400 text-xs">
-                  Default escalation + sunset YAML applied (editable on the relationship&apos;s Policy tab).
-                </KvValue>
-
-                <KvKey>Timeline</KvKey>
-                <KvValue className="text-neutral-400 text-xs">
-                  Provenance outcome appended — &quot;Created from Cartographer proposal {proposal.proposalId}&quot;.
-                </KvValue>
-
-                <KvKey>Audit log</KvKey>
-                <KvValue className="text-neutral-400 text-xs">
-                  Two entries written: <span className="font-mono">create_relationship</span> + <span className="font-mono">approve_proposal</span>.
-                </KvValue>
-              </div>
+            <SectionLabel>What was set up</SectionLabel>
+            <div className="space-y-px bg-border">
+              <KvRow k="Parties">
+                <span className="font-semibold text-foreground">{rel.parties[0]?.name}</span>
+                <span className="text-muted-foreground"> · {rel.parties[0]?.type}</span>
+                <span className="mx-2 text-accent">↔</span>
+                <span className="font-semibold text-foreground">{rel.parties[1]?.name}</span>
+                <span className="text-muted-foreground"> · {rel.parties[1]?.type}</span>
+              </KvRow>
+              <KvRow k="Type">{humaniseLabel(rel.type)}</KvRow>
+              <KvRow k="State"><span className="text-foreground">Active</span></KvRow>
+              <KvRow k="Cadence">{rel.cadence}</KvRow>
+              <KvRow k="Focus">
+                {rel.focus.length === 0 ? (
+                  <span className="text-muted-foreground italic normal-case tracking-normal">model didn&apos;t suggest any</span>
+                ) : (
+                  rel.focus.map((f, i) => (
+                    <span key={f}>
+                      {i > 0 && <span className="text-muted-foreground"> · </span>}
+                      <span className="text-foreground">{f}</span>
+                    </span>
+                  ))
+                )}
+              </KvRow>
+              <KvRow k="Policies">
+                <span className="font-sans text-xs text-muted-foreground normal-case tracking-normal">
+                  Default escalation + sunset YAML · editable on the relationship&apos;s policy tab
+                </span>
+              </KvRow>
+              <KvRow k="Audit">
+                <span className="font-sans text-xs text-muted-foreground normal-case tracking-normal">
+                  Two entries written · create_relationship + approve_proposal
+                </span>
+              </KvRow>
             </div>
           </section>
         )}
 
-        {/* The original proposal — collapsed reference */}
+        {/* Original proposal */}
         <section>
-          <SectionLabel>Cartographer&apos;s reasoning</SectionLabel>
-          <div className="border border-neutral-800 rounded p-3 bg-neutral-900/30 text-sm">
-            <div className="text-xs text-amber-300 uppercase tracking-wider mb-1">
+          <SectionLabel>Cartographer reasoning</SectionLabel>
+          <div className="border border-border bg-card p-4 relative">
+            <span className="absolute top-0 left-0 w-12 h-1 bg-accent" />
+            <div className="font-mono text-xs uppercase tracking-widest text-accent mb-3">
               {humaniseLabel(proposal.gapType)}
             </div>
-            <div className="text-neutral-300 leading-relaxed">{proposal.reasoning}</div>
+            <p className="font-sans text-sm text-foreground leading-relaxed">
+              {proposal.reasoning}
+            </p>
             {proposal.impact && (
-              <div className="text-emerald-300 text-xs mt-2">
-                <span className="text-emerald-400/80 uppercase tracking-wider text-[10px] mr-1">Expected impact</span>
-                {proposal.impact}
+              <div className="mt-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                Expected impact · <span className="text-foreground normal-case tracking-normal">{proposal.impact}</span>
               </div>
             )}
           </div>
@@ -138,48 +120,66 @@ export default function ApprovalResultModal({
         {!isMaterialised && (
           <section>
             <SectionLabel>What to do</SectionLabel>
-            <ol className="space-y-2.5 text-sm">
+            <ol className="space-y-3 font-sans text-sm">
               <Step n={1}>
-                Cartographer suggested a gap that needs a new actor or hit an existing duplicate. The proposal is marked <span className="font-mono text-xs">recruited</span> in the audit log either way.
+                Cartographer suggested a gap that needs a new actor or hit an
+                existing duplicate. The proposal is marked recruited in the audit log either way.
               </Step>
               <Step n={2}>
                 If a new actor is needed:{' '}
-                <Link href="/graph" className="text-emerald-300 hover:underline" onClick={onClose}>open the Graph</Link> and use <span className="font-mono text-xs">+ Add actor</span>, then form the relationship manually.
+                <Link href="/graph" className="text-accent underline underline-offset-4 decoration-1 hover:opacity-80 transition-opacity" onClick={onClose}>
+                  open the Graph
+                </Link>
+                {' '}and use + Add actor, then form the relationship manually.
               </Step>
             </ol>
           </section>
         )}
 
         {isMaterialised && (
-          <div className="text-xs text-neutral-500 px-1">
+          <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
             {remainingProposals === 0
-              ? 'Inbox is empty after this approval.'
-              : `${remainingProposals} more open ${remainingProposals === 1 ? 'proposal' : 'proposals'} in the queue.`}
+              ? 'Inbox empty after this approval'
+              : `${remainingProposals} more ${remainingProposals === 1 ? 'proposal' : 'proposals'} in the queue`}
           </div>
         )}
 
         {/* Action row */}
-        <div className="flex gap-2 justify-end pt-2 border-t border-neutral-800">
+        <div className="flex gap-8 items-center pt-4 border-t border-border">
           {isMaterialised ? (
             <Link
               href={`/relationships/${response.relationshipId}`}
               onClick={onClose}
-              className="px-4 py-2 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+              className="group inline-flex items-center font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px"
             >
-              Open new relationship →
+              <span className="relative">
+                Open new relationship →
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+                  style={{ transformOrigin: 'left center' }}
+                />
+              </span>
             </Link>
           ) : (
             <Link
               href="/graph"
               onClick={onClose}
-              className="px-4 py-2 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium"
+              className="group inline-flex items-center font-semibold uppercase tracking-wider text-sm text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px"
             >
-              Open Graph →
+              <span className="relative">
+                Open Graph →
+                <span
+                  aria-hidden="true"
+                  className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+                  style={{ transformOrigin: 'left center' }}
+                />
+              </span>
             </Link>
           )}
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded border border-neutral-700 hover:bg-neutral-900 text-sm"
+            className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-150"
           >
             Continue triaging
           </button>
@@ -191,7 +191,7 @@ export default function ApprovalResultModal({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="text-xs uppercase tracking-[0.15em] text-neutral-500 mb-2 font-medium">
+    <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-3">
       {children}
     </div>
   );
@@ -199,31 +199,20 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <li className="flex gap-3">
-      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-neutral-800 text-neutral-300 text-xs flex items-center justify-center font-medium">
-        {n}
+    <li className="flex gap-4">
+      <span className="flex-shrink-0 font-mono text-xs uppercase tracking-widest text-accent pt-0.5">
+        {String(n).padStart(2, '0')}
       </span>
-      <span className="leading-relaxed">{children}</span>
+      <span className="leading-relaxed text-foreground">{children}</span>
     </li>
   );
 }
 
-function KvKey({ children }: { children: React.ReactNode }) {
-  return <div className="text-xs uppercase tracking-wider text-neutral-500">{children}</div>;
-}
-
-function KvValue({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`text-sm text-neutral-200 ${className}`}>{children}</div>;
-}
-
-function Chip({ children, color = 'neutral' }: { children: React.ReactNode; color?: 'neutral' | 'emerald' | 'amber' }) {
-  const styles =
-    color === 'emerald' ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-200' :
-    color === 'amber' ? 'bg-amber-950/40 border-amber-800/60 text-amber-200' :
-    'bg-neutral-900 border-neutral-700 text-neutral-200';
+function KvRow({ k, children }: { k: string; children: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] border font-medium ${styles}`}>
-      {children}
-    </span>
+    <div className="bg-background py-3 px-4 grid grid-cols-[100px_1fr] gap-4 items-baseline">
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">{k}</div>
+      <div className="font-sans text-sm">{children}</div>
+    </div>
   );
 }
