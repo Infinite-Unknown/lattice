@@ -12,14 +12,23 @@ function getClient(): GoogleGenAI {
   return client;
 }
 
-export async function generateStructured<T>(prompt: string, responseSchema: object): Promise<T> {
+export interface GenerateOptions {
+  /** 0 = deterministic, 1 = max creativity. Default 0.75 — varied without going off-rails. */
+  temperature?: number;
+}
+
+export async function generateStructured<T>(
+  prompt: string,
+  responseSchema: object,
+  opts: GenerateOptions = {},
+): Promise<T> {
   const res = await getClient().models.generateContent({
     model,
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
       responseSchema,
-      temperature: 0.2,
+      temperature: opts.temperature ?? 0.75,
     },
   });
   const text = res.text;

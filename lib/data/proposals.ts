@@ -8,6 +8,11 @@ export async function listOpenProposals(): Promise<ProposedRelationship[]> {
   return snap.docs.map(d => d.data() as ProposedRelationship);
 }
 
+export async function listAllProposals(): Promise<ProposedRelationship[]> {
+  const snap = await getAdminDb().collection(COL).get();
+  return snap.docs.map(d => d.data() as ProposedRelationship);
+}
+
 export async function upsertProposal(p: ProposedRelationship): Promise<void> {
   await getAdminDb().collection(COL).doc(p.id).set(p);
 }

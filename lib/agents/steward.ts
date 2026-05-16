@@ -44,7 +44,19 @@ export async function runStewardTick(relationship: Relationship): Promise<Stewar
     similar = scored.sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.o);
   }
 
-  const prompt = buildStewardPrompt({ relationship, parties, recentOutcomes: recent, similarPastOutcomes: similar });
+  // Recent decisions = last 5 steward_log entries newest-first, so the agent
+  // can see what it just proposed and what the admin did with it.
+  const recentDecisions = relationship.steward_log
+    .slice()
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 5);
+
+  const prompt = buildStewardPrompt({
+    relationship, parties,
+    recentOutcomes: recent,
+    similarPastOutcomes: similar,
+    recentDecisions,
+  });
   const raw = await generateStructured<unknown>(prompt, STEWARD_RESPONSE_SCHEMA);
   const parsed = StewardActionSchema.safeParse(raw);
 

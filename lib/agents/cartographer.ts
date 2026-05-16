@@ -1,10 +1,11 @@
 import { listActors } from '@/lib/data/actors';
 import { listRelationships } from '@/lib/data/relationships';
 import { getAdminDb } from '@/lib/firebase-admin';
-import { upsertProposal } from '@/lib/data/proposals';
+import { listAllProposals, upsertProposal } from '@/lib/data/proposals';
 import { generateStructured } from '@/lib/gemini';
 import { CartographerResponseSchema } from '@/lib/schemas';
 import { validateCitations } from './citation-resolver';
+import { buildCartographerProposalContext } from './prompts';
 import {
   overAllocatedActors, underUtilizedActors, dormantPartners,
   unmetExpertiseDemand, capacityUtilization,
@@ -37,10 +38,27 @@ async function listAllOutcomes(): Promise<Outcome[]> {
   return snap.docs.map(d => d.data() as Outcome);
 }
 
+// Detect when a newly-proposed gap is effectively a duplicate of one that's
+// already in the system (same gap_type + overlapping candidate set).
+function isDuplicateOfExisting(g: CartographerGap, existing: ProposedRelationship[]): boolean {
+  const gSet = new Set(g.candidate_parties);
+  return existing.some(p => {
+    if (p.gap_type !== g.gap_type) return false;
+    const pSet = new Set(p.candidate_parties);
+    // Consider duplicate if any candidate overlaps (we don't want two open
+    // "missing fintech-pricing" gaps targeting the same actor).
+    for (const id of pSet) if (gSet.has(id)) return true;
+    return false;
+  });
+}
+
 export async function runCartographerScan(): Promise<ProposedRelationship[]> {
-  const actors = await listActors();
-  const rels = await listRelationships();
-  const outcomes = await listAllOutcomes();
+  const [actors, rels, outcomes, allExistingProposals] = await Promise.all([
+    listActors(),
+    listRelationships(),
+    listAllOutcomes(),
+    listAllProposals(),
+  ]);
 
   const u = capacityUtilization(actors);
   const summary = {
@@ -51,10 +69,23 @@ export async function runCartographerScan(): Promise<ProposedRelationship[]> {
     unmet_expertise: unmetExpertiseDemand(actors, rels),
   };
 
+  // Surface what's already been proposed (open / recruited / dismissed) so
+  // the model doesn't keep re-suggesting the same gaps every scan.
+  const proposalContext = buildCartographerProposalContext(allExistingProposals);
+
   const prompt = `You are the Cartographer. You analyse an ecosystem graph and propose new relationships to fill structural gaps.
 
-# Metric summary
+# Metric summary (current snapshot)
 ${JSON.stringify(summary, null, 2)}
+
+# Previously proposed gaps (across all scans, with their current status)
+${proposalContext}
+
+Critical guidance:
+- Do NOT re-propose gaps that are currently OPEN — the admin already has them in their inbox.
+- Do NOT re-propose gaps that were DISMISSED unless the underlying conditions have materially changed; if you do, explain in reasoning why the situation is meaningfully different now.
+- Gaps that were RECRUITED are resolved — only propose adjacent or follow-on gaps.
+- Prefer NEW, distinct structural problems over re-stating ones already known.
 
 # Task
 Return a JSON array of gaps. Each gap must:
@@ -66,16 +97,21 @@ Return a JSON array of gaps. Each gap must:
 
 Valid metric names: capacity_utilization, expertise_coverage, dormancy_days, unmet_expertise_demand.
 Only cite actor IDs that appear in the summary.
-Surface at most 5 gaps. Prioritise the most actionable.`;
+Surface at most 5 gaps. Prioritise the most actionable AND novel ones.`;
 
   const raw = await generateStructured<unknown>(prompt, RESPONSE_SCHEMA);
   const parsed = CartographerResponseSchema.safeParse(raw);
   if (!parsed.success) return [];
 
+  // Filter out duplicates of OPEN proposals server-side — the model might
+  // ignore the guidance, so we enforce the invariant ourselves.
+  const stillOpen = allExistingProposals.filter(p => p.status === 'open');
+
   const proposals: ProposedRelationship[] = [];
   for (const g of parsed.data as CartographerGap[]) {
     const cv = await validateCitations(g.citations, VALID_METRICS);
     if (!cv.ok) continue;
+    if (isDuplicateOfExisting(g, stillOpen)) continue;
     const p: ProposedRelationship = {
       id: `pr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       type: 'mentorship',
