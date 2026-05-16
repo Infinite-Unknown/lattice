@@ -20,10 +20,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Auth pages render bare (no nav). Middleware ensures the user is logged out anyway.
-  const isAuthPage = pathname === '/sign-in' || pathname === '/sign-up';
-  if (isAuthPage) {
-    return <main className="p-6">{children}</main>;
+  // Public pages bring their own header — render bare here.
+  const isPublicPage = pathname === '/' || pathname === '/sign-in' || pathname === '/sign-up';
+  if (isPublicPage) {
+    // Landing has its own internal padding; auth forms need outer p-6.
+    return pathname === '/' ? <>{children}</> : <main className="p-6">{children}</main>;
   }
 
   async function signOut() {
@@ -38,11 +39,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <nav className="border-b border-neutral-800 px-6 py-3 flex items-center gap-6 text-sm">
-        <Link href="/" className="font-semibold flex items-center gap-2">
+        <Link href="/dashboard" className="font-semibold flex items-center gap-2">
           <span className="text-amber-400">◉</span> Lattice
         </Link>
         <div className="flex gap-1">
-          <NavLink href="/">Dashboard</NavLink>
+          <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/graph">Graph</NavLink>
           <NavInbox />
           {can('iam.manage') && <NavLink href="/iam">IAM</NavLink>}

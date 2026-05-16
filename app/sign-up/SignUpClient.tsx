@@ -31,7 +31,7 @@ export default function SignUpClient() {
       // then exchange that for a session cookie.
       await signInAsRoot(email, password);
 
-      router.push('/');
+      router.push('/dashboard');
       router.refresh();
     } catch (e: any) {
       setError(e.message);

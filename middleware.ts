@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 // Routes anyone can hit without a session.
 const PUBLIC_PATHS = [
+  '/',                  // marketing landing page
   '/sign-in',
   '/sign-up',
   '/api/auth/signup',

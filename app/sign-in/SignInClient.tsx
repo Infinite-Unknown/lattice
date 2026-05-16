@@ -7,7 +7,7 @@ import { signInAsRoot, signInAsIam } from '@/lib/auth/client-flow';
 export default function SignInClient() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get('next') ?? '/';
+  const next = params.get('next') ?? '/dashboard';
 
   const [mode, setMode] = useState<'root' | 'iam'>('root');
   const [accountId, setAccountId] = useState<string | null>(null);
