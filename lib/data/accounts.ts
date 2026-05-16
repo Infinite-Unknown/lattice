@@ -18,7 +18,23 @@ export async function upsertAccount(a: Account): Promise<void> {
 }
 
 export async function getDefaultAccount(): Promise<Account | null> {
-  // Single-tenant for v1: there's at most one account.
+  // Returns the first account if exactly one exists — used by the sign-in
+  // form as a 'last-resort' fallback so the single-account install case
+  // doesn't require the user to type an account name. When multiple accounts
+  // exist, returns null and the caller must look up by name explicitly.
   const all = await listAccounts();
-  return all[0] ?? null;
+  return all.length === 1 ? all[0] : null;
+}
+
+/**
+ * Find an account by name (case-insensitive exact match). Used by the IAM
+ * sign-in tab to resolve `account name + username` into the synthetic email
+ * Firebase Auth needs. Returns null if no match — the caller surfaces a
+ * friendly error so we don't leak which accounts exist on this instance.
+ */
+export async function findAccountByName(name: string): Promise<Account | null> {
+  const trimmed = name.trim().toLowerCase();
+  if (!trimmed) return null;
+  const all = await listAccounts();
+  return all.find(a => a.name.trim().toLowerCase() === trimmed) ?? null;
 }

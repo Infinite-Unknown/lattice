@@ -75,7 +75,11 @@ type ButtonAsLink = CommonProps & Omit<React.AnchorHTMLAttributes<HTMLAnchorElem
 type Props = ButtonAsButton | ButtonAsLink;
 
 const Button = forwardRef<HTMLElement, Props>(function Button(props, ref) {
-  const { variant = 'primary', size = 'md', className = '', children, ...rest } = props as any;
+  // CRITICAL: strip `as` out here so we don't forward it to <Link>.
+  // Next.js's <Link> treats `as` as the legacy URL-bar override —
+  // forwarding our polymorphic `as="link"` made every Button-as-Link
+  // navigate to a literal /link route. (Spent an hour finding this one.)
+  const { variant = 'primary', size = 'md', className = '', children, as: _polymorphicAs, ...rest } = props as any;
   const classes = `${classesFor(variant, size)} ${className}`;
 
   // For primary variant, attach the underline span as a child so it scales
@@ -108,7 +112,7 @@ const Button = forwardRef<HTMLElement, Props>(function Button(props, ref) {
         href={href}
         ref={ref as React.Ref<HTMLAnchorElement>}
         className={`${classes} ${variant === 'primary' ? 'group' : ''}`}
-        {...linkRest}
+        {...(linkRest as Omit<typeof linkRest, 'as'>)}
       >
         {inner}
       </Link>
