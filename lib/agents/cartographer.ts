@@ -90,15 +90,22 @@ Critical guidance:
 # Task
 Return a JSON array of gaps. Each gap must:
 - choose a gap_type from: over_allocation, under_utilization, missing_expertise, dormant_partner, programme_bottleneck
-- list candidate_parties (actor IDs from the summary)
-- include reasoning that cites at least one actor:<id> or metric:<name>
-- estimate expected_impact in one sentence
+- list candidate_parties (actor IDs from the summary — these stay as IDs)
+- include reasoning that uses the entities' READABLE NAMES, not their IDs
+- the citations array carries the audit-trail IDs (actor:<id> or metric:<name>)
+- estimate expected_impact in one sentence (also using names, not IDs)
 - include a confidence score in [0,1]
 - propose 2-4 short lowercase focus tags (proposed_focus) that the resulting relationship should pursue, e.g. ['fintech', 'fundraising']
 - propose a cadence string (proposed_cadence): one of 'weekly', 'bi-weekly', 'monthly', 'quarterly', or 'as-needed'
 
+Reasoning/expected_impact prose style:
+  GOOD: "Cheryl is supporting 5 active mentorships but her capacity cap
+         is 4 — pair Pulse with another mentor before she burns out."
+  BAD:  "billy_m3 is over-allocated (actor:billy_m3, metric:
+         capacity_utilization). Pair billy_c1 with another mentor."
+
 Valid metric names: capacity_utilization, expertise_coverage, dormancy_days, unmet_expertise_demand.
-Only cite actor IDs that appear in the summary.
+Only cite actor IDs (in the citations array) that appear in the summary.
 Surface at most 5 gaps. Prioritise the most actionable AND novel ones.`;
 
   const raw = await generateStructured<unknown>(prompt, RESPONSE_SCHEMA);

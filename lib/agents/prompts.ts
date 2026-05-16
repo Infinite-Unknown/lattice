@@ -64,8 +64,17 @@ Action whitelist:
 - hold: no action this tick (use sparingly)
 
 Rules:
-- reasoning MUST reference at least one citation in the form outcome:<id> or profile:<actor>.<field>.
-- Only cite IDs/fields that appear above.
+- In your reasoning, refer to entities and outcomes by their READABLE
+  NAMES, not their IDs. The reasoning text is shown directly to humans.
+  GOOD: "Cheryl proposed a session with Naluri last week; recommend a
+         follow-up check-in to confirm the B2B pipeline is unblocked."
+  BAD:  "billy_m3 proposed a session with billy_c4 last week; recommend
+         (outcome:billy_o5) a follow-up check-in."
+- The 'citations' array is where IDs go (in the citation marker form:
+  outcome:<id>, profile:<actor>.<field>, etc.). Those are the audit
+  trail; the prose is for humans.
+- MUST include at least one citation in the citations array (outcome:<id>
+  or profile:<actor>.<field>). Only cite IDs/fields that appear above.
 - confidence in [0,1].
 - Be concise. Be specific. No filler.`;
 }

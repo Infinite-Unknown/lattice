@@ -51,15 +51,23 @@ export function resolveCitation(c: string, actorNameById: Map<string, string>): 
   return { kind: 'unknown', label: rest, id: rest, raw: c };
 }
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 /**
- * Replace embedded citation markers inside the model's prose with friendlier
- * forms. The original raw citations are still surfaced separately as chips,
- * so the audit trail is preserved.
+ * Replace embedded citation markers (and bare entity IDs) inside the model's
+ * prose with friendlier forms. The original raw citations are still surfaced
+ * separately as chips, so the audit trail is preserved.
  *
  *   "actor:m_xyz is under-utilised"   -> "Bob is under-utilised"
  *   "metric:capacity_utilization"     -> "capacity utilization"
  *   "profile:m1.deals"                -> "Aisha's deals"
  *   "outcome:o172"                    -> "outcome #172"
+ *
+ * Plus a safety-net pass that swaps any bare actor ID (e.g. `billy_m3`) for
+ * the matching name. We tell Gemini to use names in prose via the prompt,
+ * but the model occasionally slips back into IDs — this catches that.
  */
 export function rewriteReasoning(text: string, actorNameById: Map<string, string>): string {
   if (!text) return text;
@@ -81,6 +89,17 @@ export function rewriteReasoning(text: string, actorNameById: Map<string, string
 
   // outcome:<id> -> "outcome #<short-id>"
   out = out.replace(/outcome:([A-Za-z0-9_-]+)/g, (_m, id) => `outcome #${id.replace(/^o_?/, '')}`);
+
+  // Safety-net: replace bare actor IDs the model leaked into prose without the
+  // 'actor:' prefix. Iterate longest-first so 'billy_m12' doesn't get
+  // partial-matched by 'billy_m1'. Whole-word boundary so we don't mangle
+  // substrings inside other words.
+  const idsByLength = Array.from(actorNameById.keys()).sort((a, b) => b.length - a.length);
+  for (const id of idsByLength) {
+    const name = actorNameById.get(id);
+    if (!name) continue;
+    out = out.replace(new RegExp(`\\b${escapeRegExp(id)}\\b`, 'g'), name);
+  }
 
   return out;
 }
