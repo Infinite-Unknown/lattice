@@ -83,16 +83,50 @@ export default function InboxClient() {
     }
   }
 
-  async function decideSteward(relationshipId: string, timestamp: string, decision: 'approve' | 'dismiss') {
-    const key = `s:${relationshipId}:${timestamp}:${decision}`;
+  async function decideSteward(
+    action: InboxData['pendingActions'][number],
+    decision: 'approve' | 'dismiss',
+  ) {
+    const key = `s:${action.relationshipId}:${action.timestamp}:${decision}`;
     setBusyId(key);
     try {
-      await fetch('/api/approve', {
+      const res = await fetch('/api/approve', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ kind: decision === 'approve' ? 'steward-log' : 'dismiss-steward', relationshipId, timestamp }),
+        body: JSON.stringify({
+          kind: decision === 'approve' ? 'steward-log' : 'dismiss-steward',
+          relationshipId: action.relationshipId,
+          timestamp: action.timestamp,
+        }),
       });
+      const j = await res.json().catch(() => ({} as any));
+
+      if (!res.ok) {
+        setToast({ kind: 'error', message: j.error ?? `Failed (${res.status})` });
+      } else if (decision === 'dismiss') {
+        setToast({
+          kind: 'info',
+          message: `Dismissed “${humaniseLabel(action.action)}” for ${action.relationshipLabel}.`,
+        });
+      } else {
+        // Approved — build a rich confirmation that names the action, the
+        // relationship, any auto state transition, and any spawned todo.
+        const bits: string[] = [`Approved “${humaniseLabel(action.action)}” for ${action.relationshipLabel}.`];
+        if (j.stateChanged && j.newState) {
+          bits.push(`State auto-transitioned to ${j.newState}.`);
+        }
+        if (j.todoId) {
+          bits.push(`Added to your todo list.`);
+        }
+        setToast({
+          kind: 'success',
+          message: bits.join(' '),
+          href: j.todoId ? '/todos' : undefined,
+        });
+      }
       await refresh();
+    } catch (e: any) {
+      setToast({ kind: 'error', message: e?.message ?? 'Network error' });
     } finally {
       setBusyId(null);
     }
@@ -189,7 +223,7 @@ export default function InboxClient() {
           <div className="flex-1">
             {toast.message}
             {toast.href && (
-              <> · <a href={toast.href} className="underline">Open relationship →</a></>
+              <> · <a href={toast.href} className="underline">{toast.href.startsWith('/todos') ? 'Open todo list →' : toast.href.startsWith('/relationships') ? 'Open relationship →' : 'Open →'}</a></>
             )}
           </div>
           <button onClick={() => setToast(null)} className="text-neutral-500 hover:text-neutral-200" aria-label="Dismiss">×</button>
@@ -218,7 +252,7 @@ export default function InboxClient() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button
-                      onClick={() => decideSteward(a.relationshipId, a.timestamp, 'dismiss')}
+                      onClick={() => decideSteward(a, 'dismiss')}
                       disabled={!canApprove || !!busyId}
                       title={canApprove ? 'Dismiss this proposal' : `Your role (${user?.role}) lacks approve.write`}
                       className="px-3 py-1 rounded border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
@@ -227,7 +261,7 @@ export default function InboxClient() {
                       Dismiss
                     </button>
                     <button
-                      onClick={() => decideSteward(a.relationshipId, a.timestamp, 'approve')}
+                      onClick={() => decideSteward(a, 'approve')}
                       disabled={!canApprove || !!busyId}
                       title={canApprove ? 'Approve — auto-transitions state for taper/sunset/escalate' : `Your role (${user?.role}) lacks approve.write`}
                       className="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"

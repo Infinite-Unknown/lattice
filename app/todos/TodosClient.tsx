@@ -67,7 +67,16 @@ export default function TodosClient() {
   async function markDone(id: string) {
     setBusyId(id + ':done');
     try {
-      await fetch(`/api/todos/${id}/complete`, { method: 'POST' });
+      const todo = todos?.find(t => t.id === id);
+      const res = await fetch(`/api/todos/${id}/complete`, { method: 'POST' });
+      if (res.ok) {
+        setToast(todo
+          ? `Marked done: “${todo.title}”`
+          : 'Marked done.');
+      } else {
+        const j = await res.json().catch(() => ({}));
+        setToast(j.error ?? `Failed (${res.status})`);
+      }
       await refresh();
     } finally {
       setBusyId(null);
