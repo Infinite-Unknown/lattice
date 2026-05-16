@@ -2,351 +2,371 @@
 import Link from 'next/link';
 import { useAuth } from './AuthContext';
 import { useReveal } from './hooks/useReveal';
+import Button from './components/Button';
 
 export default function LandingClient() {
   const { user, account, loading } = useAuth();
   const isSignedIn = !!user;
 
-  const painRef = useReveal<HTMLElement>();
+  const principleRef = useReveal<HTMLElement>();
   const anatomyRef = useReveal<HTMLElement>();
+  const proofRef = useReveal<HTMLElement>();
   const ctaRef = useReveal<HTMLElement>();
 
   return (
-    <div>
-      {/* Own minimal header — AppShell skips its nav for this route */}
-      <header className="border-b border-neutral-800">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="font-semibold text-lg flex items-center gap-2 transition-colors duration-150 hover:text-amber-300">
-            <span className="text-amber-400">◉</span> Lattice
+    <div className="bg-background text-foreground">
+      {/* Top bar — sharp, mono, minimal */}
+      <header className="border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-5 flex items-center justify-between">
+          <Link href="/" className="font-sans font-bold text-xl tracking-tight transition-colors hover:text-accent">
+            LATTICE
           </Link>
-          <div className="flex items-center gap-3">
+          <nav className="flex items-center gap-8 text-xs font-mono uppercase tracking-widest">
+            <Link href="/#what" className="hidden md:inline text-muted-foreground hover:text-foreground transition-colors duration-150">
+              The product
+            </Link>
+            <Link href="/#how" className="hidden md:inline text-muted-foreground hover:text-foreground transition-colors duration-150">
+              How it works
+            </Link>
             {!loading && (
               isSignedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="px-4 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
-                >
-                  Go to dashboard →
-                </Link>
+                <Button as="link" href="/dashboard" variant="primary" size="sm">
+                  Open dashboard →
+                </Button>
               ) : (
                 <>
-                  <Link href="/sign-in" className="text-sm text-neutral-300 hover:text-white transition-colors duration-150">
+                  <Link
+                    href="/sign-in"
+                    className="text-muted-foreground hover:text-foreground transition-colors duration-150"
+                  >
                     Sign in
                   </Link>
-                  <Link
-                    href="/sign-up"
-                    className="px-4 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
-                  >
+                  <Button as="link" href="/sign-up" variant="primary" size="sm">
                     Get started
-                  </Link>
+                  </Button>
                 </>
               )
             )}
-          </div>
+          </nav>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-16">
-        {/* Hero — staggered entrance, subtle gradient drift behind */}
-        <section className="mb-20 relative">
+      {/* Hero — poster treatment */}
+      <section className="relative border-b border-border overflow-hidden">
+        {/* Decorative oversized number behind hero */}
+        <div
+          aria-hidden="true"
+          className="hidden md:block absolute -top-12 -right-16 lg:-right-24 select-none pointer-events-none font-display font-black text-[18rem] lg:text-[24rem] leading-none text-muted opacity-40"
+        >
+          01
+        </div>
+
+        {/* Ambient gradient drift behind hero */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 opacity-60 pointer-events-none animate-gradient-drift"
+          style={{
+            background:
+              'radial-gradient(ellipse 60% 40% at 25% 25%, rgba(255,61,0,0.08), transparent 60%)',
+            backgroundSize: '200% 200%',
+          }}
+        />
+
+        <div className="relative max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-32 lg:py-40">
           <div
-            aria-hidden="true"
-            className="absolute inset-0 -z-10 opacity-40 pointer-events-none animate-gradient-drift"
-            style={{
-              background:
-                'radial-gradient(ellipse 60% 40% at 30% 20%, rgba(251,191,36,0.10), transparent 60%), radial-gradient(ellipse 50% 35% at 70% 60%, rgba(52,211,153,0.08), transparent 60%)',
-              backgroundSize: '200% 200%',
-            }}
-          />
-          <div
-            className="text-xs uppercase tracking-[0.2em] text-amber-400 mb-4 font-medium animate-fade-in-up"
+            className="font-mono text-xs uppercase tracking-widest text-accent mb-8 animate-fade-in-up"
             style={{ animationDelay: '0ms' }}
           >
-            Lattice · Autonomous Ecosystem Operations OS
+            Autonomous Ecosystem Operations
           </div>
+
           <h1
-            className="text-5xl md:text-6xl font-semibold leading-tight mb-6 animate-fade-in-up"
-            style={{ animationDelay: '120ms' }}
+            className="font-sans font-bold text-5xl md:text-7xl lg:text-8xl leading-none tracking-tighter mb-10 animate-fade-in-up"
+            style={{ animationDelay: '100ms' }}
           >
-            Relationships that run themselves.
+            Relationships
             <br />
-            <span className="text-neutral-500">An ecosystem that completes itself.</span>
+            <span className="text-muted-foreground">that run</span>
+            <br />
+            <span className="text-accent">themselves.</span>
           </h1>
+
           <p
-            className="text-neutral-300 max-w-3xl text-lg leading-relaxed mb-8 animate-fade-in-up"
-            style={{ animationDelay: '240ms' }}
+            className="font-sans text-lg md:text-xl text-muted-foreground max-w-2xl mb-12 leading-relaxed animate-fade-in-up"
+            style={{ animationDelay: '200ms' }}
           >
-            Lattice is built for <span className="text-white font-medium">programme owners and ecosystem
-            administrators</span> at accelerators, corporate venture arms, and agencies like Cradle.
-            We turn every linkage in your ecosystem — mentor ↔ founder, company ↔ programme,
-            partner ↔ initiative — into a <span className="text-emerald-400">first-class AI agent</span>
-            {' '}that proposes its own next action. You stop coordinating. You start governing.
+            Every linkage in your ecosystem becomes a first-class AI agent that
+            proposes its own next action. Stop coordinating. Start governing.
           </p>
+
           {!loading && (
             <div
-              className="flex gap-3 animate-fade-in-up"
-              style={{ animationDelay: '360ms' }}
+              className="flex flex-wrap items-center gap-6 md:gap-10 animate-fade-in-up"
+              style={{ animationDelay: '300ms' }}
             >
+              {isSignedIn ? (
+                <Button as="link" href="/dashboard" variant="primary" size="lg">
+                  Open your dashboard →
+                </Button>
+              ) : (
+                <>
+                  <Button as="link" href="/sign-up" variant="primary" size="lg">
+                    Bootstrap your account →
+                  </Button>
+                  <Button as="link" href="/sign-in" variant="ghost" size="md">
+                    Sign in →
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Stat strip — editorial / poster numbers */}
+      <section className="border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-16 md:py-24">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-6">
+            <Stat number="4" label="Relationship types" />
+            <Stat number="7" label="Steward actions" />
+            <Stat number="5" label="Gap classes" accent />
+            <Stat number="0" label="Manual coordination" />
+          </div>
+        </div>
+      </section>
+
+      {/* The principle (pull quote) */}
+      <section ref={principleRef} className="border-b border-border reveal-on-scroll">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-32">
+          <div className="grid lg:grid-cols-12 gap-10">
+            <div className="lg:col-span-3">
+              <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
+                Principle
+              </div>
+              <span className="block w-16 h-1 bg-accent" />
+            </div>
+            <blockquote className="lg:col-span-9">
+              <p className="font-display text-3xl md:text-4xl lg:text-5xl leading-tight tracking-tight text-foreground">
+                <span className="text-accent">"</span>
+                A mentor-founder pairing isn't a row in a spreadsheet. It's a
+                first-class entity with its own schema, its own AI agent, its
+                own memory, and its own governance.
+                <span className="text-accent">"</span>
+              </p>
+              <footer className="font-mono text-xs uppercase tracking-widest text-muted-foreground mt-8">
+                — The Lattice thesis
+              </footer>
+            </blockquote>
+          </div>
+        </div>
+      </section>
+
+      {/* What — the Cradle problems, restated as bold typographic posters */}
+      <section id="what" ref={anatomyRef} className="border-b border-border reveal-on-scroll">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-32">
+          <div className="mb-16 md:mb-24">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
+              The Cradle problem
+            </div>
+            <h2 className="font-sans font-bold text-4xl md:text-6xl lg:text-7xl leading-none tracking-tighter">
+              Manual coordination
+              <br />
+              <span className="text-muted-foreground">does not scale.</span>
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-px bg-border">
+            <ProblemBlock
+              n="01"
+              problem="Complex Actor Networks"
+              answer="Live ecosystem graph"
+              body="Every actor, every linkage, in one force-directed view. Click any edge to see its full memory and policy."
+            />
+            <ProblemBlock
+              n="02"
+              problem="Everything Is Manual"
+              answer="Autonomous Stewards"
+              body="Each relationship has its own AI agent that proposes the next session, intro, or escalation — grounded in past outcomes."
+              highlight
+            />
+            <ProblemBlock
+              n="03"
+              problem="Growth Amplifies Pain"
+              answer="Cartographer meta-agent"
+              body="Scans the whole graph for structural gaps — over-allocated mentors, dormant partners, missing expertise — and proposes new linkages."
+            />
+            <ProblemBlock
+              n="04"
+              problem="Lost Intelligence"
+              answer="Outcome-grounded reasoning"
+              body="Every approved action becomes a citable outcome. The next Steward tick retrieves the most-relevant past outcomes via embeddings."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* How — three-step process */}
+      <section id="how" ref={proofRef} className="border-b border-border reveal-on-scroll">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-32">
+          <div className="mb-16 md:mb-24">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
+              How it works
+            </div>
+            <h2 className="font-sans font-bold text-4xl md:text-6xl lg:text-7xl leading-none tracking-tighter">
+              Three loops.
+              <br />
+              <span className="text-muted-foreground">One ecosystem.</span>
+            </h2>
+          </div>
+
+          <div className="space-y-px bg-border">
+            <Step
+              n="01"
+              title="Steward proposes"
+              body="Per-relationship AI reads recent outcomes, retrieves similar past ones via embeddings, picks one action from a 7-action whitelist, cites every claim."
+            />
+            <Step
+              n="02"
+              title="Cartographer detects"
+              body="Graph-wide meta-agent finds structural gaps — overloaded mentors, dormant partners, missing expertise — and proposes new linkages with focus and cadence pre-committed."
+            />
+            <Step
+              n="03"
+              title="You approve"
+              body="One click materialises the relationship. Audit log captures the decision. The ecosystem updates. The next tick learns from it."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA — inverted (white on near-white) for maximum contrast */}
+      <section ref={ctaRef} className="bg-foreground text-background reveal-on-scroll">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-40">
+          <h2 className="font-sans font-bold text-5xl md:text-7xl lg:text-8xl leading-none tracking-tighter mb-12 max-w-3xl">
+            Stop coordinating.
+            <br />
+            <span className="text-accent">Start governing.</span>
+          </h2>
+          {!loading && (
+            <div className="flex flex-wrap items-center gap-10">
               {isSignedIn ? (
                 <Link
                   href="/dashboard"
-                  className="px-5 py-2.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
+                  className="group inline-flex items-center gap-3 font-semibold uppercase tracking-wider text-base text-accent py-4 transition-all duration-150 ease-crisp active:translate-y-px"
                 >
-                  Open your dashboard{account ? ` · ${account.name}` : ''}
+                  <span className="relative">
+                    Open your dashboard →
+                    <span
+                      aria-hidden="true"
+                      className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+                      style={{ transformOrigin: 'left center' }}
+                    />
+                  </span>
                 </Link>
               ) : (
                 <>
                   <Link
                     href="/sign-up"
-                    className="px-5 py-2.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
+                    className="group inline-flex items-center gap-3 font-semibold uppercase tracking-wider text-base text-accent py-4 transition-all duration-150 ease-crisp active:translate-y-px"
                   >
-                    Get started — bootstrap your account
+                    <span className="relative">
+                      Bootstrap your account →
+                      <span
+                        aria-hidden="true"
+                        className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
+                        style={{ transformOrigin: 'left center' }}
+                      />
+                    </span>
                   </Link>
                   <Link
                     href="/sign-in"
-                    className="px-5 py-2.5 rounded border border-neutral-700 hover:bg-neutral-900 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
+                    className="font-semibold uppercase tracking-wider text-sm text-background/70 hover:text-background transition-colors duration-150"
                   >
-                    Sign in
+                    Sign in →
                   </Link>
                 </>
               )}
             </div>
           )}
-        </section>
+        </div>
+      </section>
 
-        {/* Why this matters → How Lattice answers */}
-        <section ref={painRef} className="mb-20 reveal-on-scroll">
-          <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-4 font-medium">
-            The Cradle problem · How Lattice solves each piece
-          </div>
-          <div className="grid md:grid-cols-2 gap-3">
-            <Pain
-              problem="Complex Actor Networks"
-              problemBody="Innovation ecosystems span companies, mentors, partners, and service providers across programmes and regions."
-              solution="Live ecosystem graph"
-              solutionBody="Every actor, every linkage, in one force-directed view. Click any edge to see its full memory and policy."
-              color="emerald"
-            />
-            <Pain
-              problem="Everything Is Manual Today"
-              problemBody="Admins verify participants, match mentors, assign cohorts, and track engagement — every time, from scratch."
-              solution="Autonomous Stewards"
-              solutionBody="Each relationship has its own AI agent that proposes the next session, intro, or escalation — grounded in past outcomes and citation-validated. You approve or edit."
-              color="amber"
-            />
-            <Pain
-              problem="Growth Amplifies the Pain"
-              problemBody="At scale, manual coordination breaks. Programmes can't share signal across cohorts or borders. Gaps go unnoticed."
-              solution="Cartographer meta-agent"
-              solutionBody="Scans the whole graph for structural gaps — over-allocated mentors, dormant partners, missing expertise — and proposes new linkages to fill them."
-              color="amber"
-            />
-            <Pain
-              problem="Lost Intelligence"
-              problemBody="Past engagements never inform future matching. Each cohort restarts from zero. Insight evaporates between programmes."
-              solution="Outcome-grounded reasoning"
-              solutionBody="Every approved action becomes a citable outcome. The next Steward tick retrieves the most-relevant past outcomes via embeddings — the ecosystem learns from itself."
-              color="emerald"
-            />
-          </div>
-        </section>
-
-        {/* Anatomy of a Lattice Relationship */}
-        <section ref={anatomyRef} className="mb-20 reveal-on-scroll">
-          <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-4 font-medium">
-            What is a Lattice relationship?
-          </div>
-          <div className="border border-neutral-800 rounded-lg p-6 bg-neutral-900/30 transition-colors duration-200 hover:border-neutral-700">
-            <p className="text-neutral-300 mb-5 max-w-3xl leading-relaxed">
-              Today, a mentor-founder pairing is a row in a spreadsheet. In Lattice, it&apos;s a{' '}
-              <span className="text-emerald-300 font-medium">first-class entity</span> with its own
-              schema, its own AI agent, its own memory, and its own governance — defined, automated,
-              governed, and reused across programmes.
-            </p>
-
-            <div className="grid md:grid-cols-[1fr_auto_1fr] gap-4 items-center mb-6">
-              <PartyCard color="#34d399" type="Party A" name="<actor>" sub="any type · profile · expertise tags · capacity" />
-              <div className="text-center">
-                <div className="px-3 py-1.5 rounded-full bg-emerald-900/30 border border-emerald-700/60 text-emerald-300 text-xs whitespace-nowrap inline-block">
-                  ⟶ relationship ⟵
-                </div>
-                <div className="text-xs text-neutral-500 mt-1">cadence · focus tags</div>
-              </div>
-              <PartyCard color="#60a5fa" type="Party B" name="<actor>" sub="any type · profile · expertise tags · capacity" />
+      {/* Footer */}
+      <footer className="border-t border-border bg-background">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-16">
+          <div className="grid md:grid-cols-2 gap-10">
+            <div>
+              <Link href="/" className="font-sans font-bold text-xl tracking-tight">
+                LATTICE
+              </Link>
+              <p className="font-sans text-sm text-muted-foreground mt-4 max-w-md leading-relaxed">
+                Built for Build with AI 2026 KL — MyHack. Cradle problem
+                statement: <em>Automating Ecosystem Linkages Instead of Manual
+                Coordination</em>.
+              </p>
             </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <AnatomyBlock
-                label="Schema"
-                accent="emerald"
-                body={
-                  <div className="space-y-1 text-sm font-mono">
-                    <KV k="type" v="mentorship | company_in_programme | partner_in_initiative | service_engagement" />
-                    <KV k="state" v="active | escalated | tapered | closed" />
-                    <KV k="focus" v="string[]" />
-                    <KV k="cadence" v="string" />
-                  </div>
-                }
-                hint="A typed, queryable record. Same shape across every account, every programme."
-              />
-
-              <AnatomyBlock
-                label="Steward (AI agent)"
-                accent="emerald"
-                body={
-                  <div className="text-sm text-neutral-300 space-y-1.5">
-                    <div>↻ reads recent outcomes + retrieves similar past ones via embeddings</div>
-                    <div>↻ reasons with Gemini, picks one action from a 7-action whitelist</div>
-                    <div>↻ cites every claim (outcome:id, profile:actor.field)</div>
-                    <div>↻ surfaces a proposal — never executes without your nod</div>
-                  </div>
-                }
-                hint="Per-relationship AI that runs autonomously."
-              />
-
-              <AnatomyBlock
-                label="Policy (programmable)"
-                accent="amber"
-                body={
-                  <pre className="text-xs text-neutral-300 bg-neutral-950 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`escalation:
-  triggers:
-    - if: <metric>
-      value: <threshold>
-      action: <admin_signal>
-
-sunset:
-  triggers:
-    - if: <event>
-      value: <match>
-      action: close | review`}</pre>
-                }
-                hint="Edit the YAML, save, and the next Steward tick obeys the new rule."
-              />
-
-              <AnatomyBlock
-                label="Outcomes (memory)"
-                accent="emerald"
-                body={
-                  <div className="space-y-1.5 text-xs font-mono">
-                    <div className="text-neutral-300">
-                      <span className="text-emerald-400">session_held</span>
-                      <span className="text-neutral-500"> | </span>
-                      <span className="text-emerald-400">intro_made</span>
-                      <span className="text-neutral-500"> | </span>
-                      <span className="text-emerald-400">milestone</span>
-                    </div>
-                    <div className="text-neutral-300">
-                      <span className="text-emerald-400">issue</span>
-                      <span className="text-neutral-500"> | </span>
-                      <span className="text-emerald-400">closing_note</span>
-                    </div>
-                    <div className="text-neutral-500 text-[10px] pt-1">
-                      each outcome: { '{ id, type, evidence_text, source, verified, timestamp }' }
-                    </div>
-                  </div>
-                }
-                hint="Every approval becomes citable evidence for the next tick."
-              />
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground space-y-2 md:text-right">
+              <div>Powered by</div>
+              <div className="text-foreground">Gemini 3.1 · Firestore · Cloud Run</div>
             </div>
           </div>
-        </section>
+        </div>
+      </footer>
+    </div>
+  );
+}
 
-        {/* Bottom CTA */}
-        <section ref={ctaRef} className="mb-12 text-center reveal-on-scroll">
-          {!loading && (isSignedIn ? (
-            <Link
-              href="/dashboard"
-              className="inline-block px-6 py-3 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
-            >
-              Go to your dashboard →
-            </Link>
-          ) : (
-            <Link
-              href="/sign-up"
-              className="inline-block px-6 py-3 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
-            >
-              Bootstrap your Lattice account →
-            </Link>
-          ))}
-        </section>
-
-        {/* Footer */}
-        <footer className="text-xs text-neutral-600 pt-6 border-t border-neutral-900">
-          Built for Build with AI 2026 KL — MyHack · Cradle problem statement:
-          <em> Automating Ecosystem Linkages Instead of Manual Coordination</em>.
-          Powered by Gemini 3.1, Vertex AI embeddings, Firestore, Firebase Auth, and Cloud Run.
-        </footer>
+function Stat({ number, label, accent }: { number: string; label: string; accent?: boolean }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className={`font-sans font-bold text-6xl md:text-7xl leading-none tracking-tighter ${accent ? 'text-accent' : 'text-foreground'}`}>
+        {number}
+      </div>
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+        {label}
       </div>
     </div>
   );
 }
 
-function Pain({
-  problem, problemBody, solution, solutionBody, color,
+function ProblemBlock({
+  n, problem, answer, body, highlight,
 }: {
-  problem: string; problemBody: string; solution: string; solutionBody: string;
-  color: 'emerald' | 'amber';
+  n: string; problem: string; answer: string; body: string; highlight?: boolean;
 }) {
-  const accent = color === 'emerald' ? 'text-emerald-400' : 'text-amber-400';
   return (
-    <div className="border border-neutral-800 rounded-lg overflow-hidden transition-colors duration-200 hover:border-neutral-700">
-      <div className="p-4 bg-rose-950/10 border-b border-neutral-800">
-        <div className="text-xs uppercase tracking-wider text-rose-400 mb-1 font-medium">The pain</div>
-        <div className="font-semibold mb-1">{problem}</div>
-        <div className="text-sm text-neutral-400 leading-relaxed">{problemBody}</div>
+    <div className={`relative p-8 md:p-10 lg:p-12 transition-colors duration-150 ${highlight ? 'bg-muted hover:bg-card' : 'bg-background hover:bg-muted'}`}>
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-6">
+        {n} / The pain
       </div>
-      <div className="p-4">
-        <div className={`text-xs uppercase tracking-wider ${accent} mb-1 font-medium`}>Lattice answers with</div>
-        <div className="font-semibold mb-1">{solution}</div>
-        <div className="text-sm text-neutral-400 leading-relaxed">{solutionBody}</div>
+      <h3 className="font-sans font-bold text-2xl md:text-3xl leading-tight tracking-tight mb-6">
+        {problem}
+      </h3>
+      <div className="font-mono text-xs uppercase tracking-widest text-accent mb-3">
+        Lattice answers
       </div>
+      <div className="font-sans font-semibold text-lg mb-4">
+        {answer}
+      </div>
+      <p className="font-sans text-base text-muted-foreground leading-relaxed">
+        {body}
+      </p>
     </div>
   );
 }
 
-function PartyCard({ color, type, name, sub }: { color: string; type: string; name: string; sub: string }) {
+function Step({ n, title, body }: { n: string; title: string; body: string }) {
   return (
-    <div className="border border-neutral-800 rounded-lg p-3 bg-neutral-900/50 text-center">
-      <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-500 mb-1">
-        <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }}></span>
-        {type}
+    <div className="bg-background p-8 md:p-10 lg:p-12 grid md:grid-cols-12 gap-6 md:gap-10 items-baseline group">
+      <div className="md:col-span-1 font-mono text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-150 group-hover:text-accent">
+        {n}
       </div>
-      <div className="font-medium text-neutral-100">{name}</div>
-      <div className="text-xs text-neutral-500 mt-0.5">{sub}</div>
-    </div>
-  );
-}
-
-function AnatomyBlock({ label, accent, body, hint }: { label: string; accent: 'emerald' | 'amber'; body: React.ReactNode; hint: string }) {
-  const labelColor = accent === 'emerald' ? 'text-emerald-400' : 'text-amber-400';
-  return (
-    <div className="border border-neutral-800 rounded-lg p-3 bg-neutral-950/40">
-      <div className={`text-xs uppercase tracking-wider ${labelColor} mb-2 font-medium`}>{label}</div>
-      <div className="mb-2">{body}</div>
-      <div className="text-xs text-neutral-500 italic">{hint}</div>
-    </div>
-  );
-}
-
-function KV({ k, v, accent }: { k: string; v: string; accent?: 'emerald' }) {
-  return (
-    <div className="flex gap-2">
-      <span className="text-neutral-500">{k}:</span>
-      <span className={accent === 'emerald' ? 'text-emerald-400' : 'text-neutral-200'}>{v}</span>
-    </div>
-  );
-}
-
-function OutcomeRow({ type, text, age, verified }: { type: string; text: string; age: string; verified?: boolean }) {
-  return (
-    <div className="border-l-2 border-emerald-800/60 pl-2">
-      <div className="flex items-center gap-2 text-neutral-500">
-        <span className="text-emerald-400">{type}</span>
-        <span>·</span>
-        <span>{age}</span>
-        {verified && <span className="text-amber-400">✓ verified</span>}
-      </div>
-      <div className="text-neutral-300">{text}</div>
+      <h3 className="md:col-span-4 font-sans font-bold text-2xl md:text-3xl leading-tight tracking-tight">
+        {title}
+      </h3>
+      <p className="md:col-span-7 font-sans text-base md:text-lg text-muted-foreground leading-relaxed">
+        {body}
+      </p>
     </div>
   );
 }
