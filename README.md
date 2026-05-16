@@ -60,6 +60,54 @@ The schema is closed: judges and admins know exactly what the AI can propose. Th
 
 ---
 
+## 📖 Glossary
+
+Plain-English explanation of every term in the graph legend, with one concrete example per term.
+
+### Actors / Nodes — *the WHO sits on the board*
+
+| Term | Plain English | Concrete example |
+|---|---|---|
+| **Mentor** | An experienced individual who agrees to advise founders on a recurring basis | *Aisha Rahman, ex-fintech VP, 12 years operating. Agrees to mentor 5 startups per quarter.* |
+| **Company** | A startup or founder being **helped** by the ecosystem (not the buyer — the client) | *PayLane — a 2-person team building a B2B payments product, just got into Cradle's grant programme.* |
+| **Programme** | A structured cohort or initiative the operator runs. Has a theme, start, end | *"Cradle Catalyst Q2 2026"* — like "YC W24" or "Techstars NYC 2026." |
+| **Partner** | An outside organisation that **supports** the ecosystem without being a founder. Provides money, services, or network | *Maybank (corporate sponsor), KPMG (free tax advice), AWS (cloud credits), a law firm doing free incorporation.* |
+
+Mental model: **mentor = person**, **company = founder you're helping**, **programme = the cohort container**, **partner = institutional sponsor / service**.
+
+### Relationship type / Edge colour — *the WHAT KIND of connection*
+
+| Term | Plain English | Concrete example |
+|---|---|---|
+| **Mentorship** | Recurring 1:1 advising between a mentor and a founder | *Aisha ↔ Lina (PayLane founder) — coffee every 2 weeks on fintech go-to-market.* |
+| **Company in programme** | A founder is enrolled in a specific cohort | *PayLane ↔ Cradle Catalyst Q2 2026 — runs for 12 weeks with weekly demos.* |
+| **Partner in initiative** | A partner organisation is attached to a programme (institutional, not personal) | *Maybank Ventures ↔ Cradle Catalyst Q2 — the official financial-services sponsor for the cohort.* |
+| **Service engagement** | A service provider doing a **specific scope** of work for a specific actor | *KPMG ↔ PayLane — providing 4 weeks of tax-structuring help for the Series A.* |
+
+Mental model: each edge type answers a different question:
+- *Who is coaching whom?* → mentorship
+- *Who is enrolled where?* → company in programme
+- *Who is sponsoring what?* → partner in initiative
+- *Who is doing work for whom?* → service engagement
+
+### Lifecycle / Edge style — *the STATE of that connection right now*
+
+| Term | Plain English | Concrete example |
+|---|---|---|
+| **Proposed** | Suggested by Cartographer (or an admin), waiting on a human click to become real | *Cartographer flags "no b2b-pricing expertise in cohort" → proposes Aisha ↔ Lina. Sits in inbox until approved.* |
+| **Active** | Approved and running. Steward is ticking on a heartbeat; cadence is being honoured | *Aisha ↔ Lina, biweekly sessions logged, last Steward proposal was "propose-session for next Thursday."* |
+| **Escalated** | The relationship's policy fired an alarm (e.g., NPS dropped, session missed, milestone slipped). System flagged it for admin attention | *Lina's NPS for last session dropped to 5; escalation_policy says `nps_below: 7` → state flips to escalated, Steward proposes "escalate" action.* |
+| **Tapered** | Winding down deliberately. Cadence reducing, but not over | *Aisha tells admin "I'm stepping back to monthly." Steward shifts to lower-frequency check-ins; not closing, just dialling down.* |
+| **Closed** | Over. But **kept for memory** — past outcomes still feed future Steward decisions via embeddings | *PayLane graduates Cradle Catalyst. The mentorship closes — but next year, when a new fintech founder joins, that history is retrieved.* |
+
+The **Closed = kept for memory** state is the direct answer to Cradle's "Lost Intelligence" pain point.
+
+### One sentence of synthesis
+
+> *Three axes on every edge: **who's connecting** (actor types as node colour), **what kind of connection** (relationship type as edge hue), and **what state it's in right now** (lifecycle as edge style — solid, dashed, faded). Together they answer the three questions an ecosystem operator asks every morning: who's in my system, how are they connected, and where is something going wrong?*
+
+---
+
 ## 🧩 Product Components
 
 ### 1) 🛰 Steward — per-relationship AI
