@@ -3,9 +3,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signInAsRoot } from '@/lib/auth/client-flow';
+import { useAuth } from '../AuthContext';
 
 export default function SignUpClient() {
   const router = useRouter();
+  const { refresh: refreshAuth } = useAuth();
   const [accountName, setAccountName] = useState('Cradle Catalyst');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,6 +32,11 @@ export default function SignUpClient() {
       // Step 2: actually sign in (client-side Firebase) so we get an idToken;
       // then exchange that for a session cookie.
       await signInAsRoot(email, password);
+
+      // Step 3: load the new identity into AuthContext before navigating, so
+      // the dashboard renders with this user's permissions from the first
+      // paint instead of inheriting any stale cache.
+      await refreshAuth();
 
       router.push('/dashboard');
       router.refresh();

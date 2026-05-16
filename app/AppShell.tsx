@@ -15,7 +15,7 @@ const ROLE_COLOR: Record<string, string> = {
 };
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, account, can } = useAuth();
+  const { user, account, can, loading, clear } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -28,9 +28,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    // Clear client-side Firebase Auth state too so the next /sign-in attempt
-    // gets a fresh credential prompt instead of silently using a cached identity.
+    setMenuOpen(false);
+    // 1. CLEAR THE CLIENT-CACHED IDENTITY SYNCHRONOUSLY.
+    //    Critical to avoid the data-leak window where the next user briefly
+    //    sees the previous user's chrome (admin nav links, enabled buttons)
+    //    while /api/auth/me round-trips for their fresh identity.
+    clear();
+    // 2. Clear Firebase Auth client state too, so the next sign-in form
+    //    doesn't silently re-use a cached credential.
     try { await firebaseSignOut(getClientAuth()); } catch { /* ignore */ }
+    // 3. Clear the server-side session cookie + revoke Firebase refresh tokens.
     await fetch('/api/auth/signout', { method: 'POST' });
     router.push('/sign-in');
     router.refresh();
@@ -47,7 +54,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <NavLink href="/graph">Graph</NavLink>
           <NavInbox />
           <NavLink href="/audit">Audit</NavLink>
-          {can('iam.manage') && <NavLink href="/iam">IAM</NavLink>}
+          {/* Only render IAM link once we're confident in the identity —
+              prevents flashing 'admin' chrome to a viewer mid-handoff. */}
+          {!loading && can('iam.manage') && <NavLink href="/iam">IAM</NavLink>}
         </div>
 
         <div className="ml-auto relative">
@@ -81,7 +90,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 )}
               </div>
-              {can('iam.manage') && (
+              {!loading && can('iam.manage') && (
                 <Link href="/iam" onClick={() => setMenuOpen(false)} className="block p-3 hover:bg-neutral-900 text-neutral-300">
                   ⚙ Manage IAM users
                 </Link>

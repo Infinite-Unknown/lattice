@@ -3,11 +3,13 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signInAsRoot, signInAsIam } from '@/lib/auth/client-flow';
+import { useAuth } from '../AuthContext';
 
 export default function SignInClient() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get('next') ?? '/dashboard';
+  const { refresh: refreshAuth } = useAuth();
 
   const [mode, setMode] = useState<'root' | 'iam'>('root');
   const [accountId, setAccountId] = useState<string | null>(null);
@@ -40,6 +42,11 @@ export default function SignInClient() {
         if (!accountId) throw new Error('No Lattice account exists yet. Bootstrap a root account first.');
         await signInAsIam(accountId, username, password);
       }
+      // Load the new identity into AuthContext BEFORE navigating, so the
+      // destination page renders with this user's permissions from the
+      // first paint. Without this we'd briefly show whatever role was
+      // cached from the previous session (data-leak window).
+      await refreshAuth();
       router.push(next);
       router.refresh();
     } catch (e: any) {
