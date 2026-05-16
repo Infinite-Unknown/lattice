@@ -8,6 +8,6 @@ export async function POST() {
   const auth = await requireUser(['cartographer.run']);
   if ('error' in auth) return auth.error;
 
-  const proposals = await runCartographerScan();
+  const proposals = await runCartographerScan(auth.user.account_id);
   return NextResponse.json({ proposals });
 }

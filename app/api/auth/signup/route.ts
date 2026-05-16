@@ -1,23 +1,24 @@
 import { NextResponse } from 'next/server';
 import { getAdminAuth } from '@/lib/firebase-admin';
-import { getDefaultAccount, upsertAccount } from '@/lib/data/accounts';
+import { upsertAccount } from '@/lib/data/accounts';
 import { findUserByEmail, upsertUser } from '@/lib/data/users';
 import type { Account, User } from '@/lib/auth/types';
 
 export const runtime = 'nodejs';
 
 /**
- * Bootstrap the Lattice instance with a root account.
+ * Bootstrap a new root account in this Lattice instance.
  *
  * Creates:
  *  - a Firebase Auth user (so the client can sign in with email+password)
- *  - a Firestore `accounts` doc
+ *  - a Firestore `accounts` doc (a tenant — one Firebase project can hold many)
  *  - a Firestore `users` doc whose id is the Firebase UID
  *  - Firebase custom claims { role, account_id, type } on the auth user
  *
- * Only the first signup succeeds — subsequent ones get 409 because v1 is
- * single-tenant. After signup the client immediately calls signInWithEmailAndPassword
- * and then POSTs the resulting idToken to /api/auth/session.
+ * Multi-tenant: every signup creates a NEW Account + Root user. The Firebase
+ * project (configured once via env vars) holds many accounts side-by-side;
+ * data is segregated by account_id at the application layer. After signup the
+ * client immediately signs in and exchanges the idToken for a session cookie.
  */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -28,14 +29,6 @@ export async function POST(req: Request) {
   }
   if (password.length < 8) {
     return NextResponse.json({ error: 'password must be at least 8 characters' }, { status: 400 });
-  }
-
-  // v1 is single-tenant — exactly one Account / Root.
-  const existing = await getDefaultAccount();
-  if (existing) {
-    return NextResponse.json({
-      error: 'A root account already exists for this Lattice instance. Ask the root user to create an IAM user for you.',
-    }, { status: 409 });
   }
 
   const lowerEmail = email.toLowerCase();

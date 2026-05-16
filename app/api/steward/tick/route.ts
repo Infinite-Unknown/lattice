@@ -11,8 +11,9 @@ export async function POST(req: Request) {
 
   const { relationshipId } = await req.json();
   if (!relationshipId) return NextResponse.json({ error: 'relationshipId required' }, { status: 400 });
-  const r = await getRelationship(relationshipId);
+  const accountId = auth.user.account_id;
+  const r = await getRelationship(relationshipId, accountId);
   if (!r) return NextResponse.json({ error: 'not found' }, { status: 404 });
-  const entry = await runStewardTick(r);
+  const entry = await runStewardTick(r, accountId);
   return NextResponse.json({ entry });
 }

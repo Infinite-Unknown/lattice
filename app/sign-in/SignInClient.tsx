@@ -14,8 +14,10 @@ export default function SignInClient() {
   const { refresh: refreshAuth } = useAuth();
 
   const [mode, setMode] = useState<'root' | 'iam'>('root');
-  const [accountId, setAccountId] = useState<string | null>(null);
-  const [accountName, setAccountName] = useState<string | null>(null);
+  // The single-tenant fallback: if exactly one account exists, we can
+  // pre-fill the IAM tab's account-name field for convenience.
+  const [defaultAccountName, setDefaultAccountName] = useState<string | null>(null);
+  const [accountNameInput, setAccountNameInput] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -25,8 +27,8 @@ export default function SignInClient() {
   useEffect(() => {
     fetch('/api/auth/account').then(r => r.json()).then(j => {
       if (j.account) {
-        setAccountId(j.account.id);
-        setAccountName(j.account.name);
+        setDefaultAccountName(j.account.name);
+        setAccountNameInput(j.account.name);
       }
     });
   }, []);
@@ -37,9 +39,20 @@ export default function SignInClient() {
     setError(null);
     try {
       if (mode === 'root') {
+        // Root uses a real email — Firebase Auth identifies the user
+        // globally and the user doc's account_id tells us the tenant.
         await signInAsRoot(email, password);
       } else {
-        if (!accountId) throw new Error('No Lattice account exists yet. Bootstrap a root account first.');
+        // IAM is scoped to a specific account. Look up the account by
+        // name to get its id, then mint the synthetic IAM email.
+        const accountName = accountNameInput.trim();
+        if (!accountName) throw new Error('Enter an account name to sign in as an IAM user.');
+        const r = await fetch(`/api/auth/accounts/lookup?name=${encodeURIComponent(accountName)}`);
+        if (r.status === 404) throw new Error('No account by that name. Check spelling, or ask your root user.');
+        if (!r.ok) throw new Error(`account lookup failed (${r.status})`);
+        const j = await r.json();
+        const accountId = j.account?.id as string | undefined;
+        if (!accountId) throw new Error('account lookup returned no id');
         await signInAsIam(accountId, username, password);
       }
       await refreshAuth();
@@ -77,7 +90,7 @@ export default function SignInClient() {
           </p>
         </div>
         <div className="relative font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          {accountName ? <>Account · <span className="text-foreground">{accountName}</span></> : <>Build with AI 2026 KL</>}
+          {defaultAccountName ? <>Account · <span className="text-foreground">{defaultAccountName}</span></> : <>Build with AI 2026 KL</>}
         </div>
       </div>
 
@@ -126,8 +139,18 @@ export default function SignInClient() {
             ) : (
               <>
                 <div className="border border-border bg-muted p-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                  IAM users sign in with a username, not email.
+                  IAM users sign in with a username scoped to their account.
                 </div>
+                <Field label="Account name">
+                  <Input
+                    type="text"
+                    value={accountNameInput}
+                    onChange={e => setAccountNameInput(e.target.value)}
+                    required
+                    placeholder="Cradle Catalyst"
+                    autoComplete="organization"
+                  />
+                </Field>
                 <Field label="Username">
                   <Input
                     type="text"
@@ -167,7 +190,7 @@ export default function SignInClient() {
           <div className="mt-10 font-mono text-xs uppercase tracking-widest text-muted-foreground">
             First time?{' '}
             <Link href="/sign-up" className="text-foreground hover:text-accent transition-colors duration-150 underline underline-offset-4 decoration-1">
-              Bootstrap a root account →
+              Bootstrap a new account →
             </Link>
           </div>
         </div>

@@ -19,7 +19,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: `state must be one of: ${TRANSITIONABLE_TO.join(', ')}` }, { status: 400 });
   }
 
-  const r = await getRelationship(params.id);
+  const accountId = auth.user.account_id;
+  const r = await getRelationship(params.id, accountId);
   if (!r) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
   const prevState = r.state;
@@ -29,6 +30,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   // Audit the transition by appending an outcome so the timeline shows it.
   await upsertOutcome({
     id: `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    account_id: accountId,
     relationship_id: r.id,
     type: next === 'closed' ? 'closing_note' : next === 'tapered' ? 'milestone' : 'milestone',
     evidence_text: `Admin transitioned state: ${prevState} → ${next} (by ${auth.user.name})`,

@@ -10,7 +10,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const auth = await requireUser(['graph.read']);
   if ('error' in auth) return auth.error;
 
-  const actor = await getActor(params.id);
+  const actor = await getActor(params.id, auth.user.account_id);
   if (!actor) return NextResponse.json({ error: 'not found' }, { status: 404 });
   return NextResponse.json({ actor });
 }
@@ -19,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const auth = await requireUser(['actor.write']);
   if ('error' in auth) return auth.error;
 
-  const existing = await getActor(params.id);
+  const existing = await getActor(params.id, auth.user.account_id);
   if (!existing) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
   const body = await req.json().catch(() => ({}));

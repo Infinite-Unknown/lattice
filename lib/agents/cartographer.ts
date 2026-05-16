@@ -1,6 +1,6 @@
 import { listActors } from '@/lib/data/actors';
 import { listRelationships } from '@/lib/data/relationships';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { listAllOutcomes } from '@/lib/data/outcomes';
 import { listAllProposals, upsertProposal } from '@/lib/data/proposals';
 import { generateStructured } from '@/lib/gemini';
 import { CartographerResponseSchema } from '@/lib/schemas';
@@ -10,7 +10,7 @@ import {
   overAllocatedActors, underUtilizedActors, dormantPartners,
   unmetExpertiseDemand, capacityUtilization,
 } from './graph-metrics';
-import type { Outcome, ProposedRelationship, CartographerGap } from '@/lib/types';
+import type { ProposedRelationship, CartographerGap } from '@/lib/types';
 
 const RESPONSE_SCHEMA = {
   type: 'array',
@@ -38,11 +38,6 @@ const VALID_METRICS = new Set([
   'unmet_expertise_demand',
 ]);
 
-async function listAllOutcomes(): Promise<Outcome[]> {
-  const snap = await getAdminDb().collection('outcomes').get();
-  return snap.docs.map(d => d.data() as Outcome);
-}
-
 // Detect when a newly-proposed gap is effectively a duplicate of one that's
 // already in the system (same gap_type + overlapping candidate set).
 function isDuplicateOfExisting(g: CartographerGap, existing: ProposedRelationship[]): boolean {
@@ -57,12 +52,12 @@ function isDuplicateOfExisting(g: CartographerGap, existing: ProposedRelationshi
   });
 }
 
-export async function runCartographerScan(): Promise<ProposedRelationship[]> {
+export async function runCartographerScan(accountId: string): Promise<ProposedRelationship[]> {
   const [actors, rels, outcomes, allExistingProposals] = await Promise.all([
-    listActors(),
-    listRelationships(),
-    listAllOutcomes(),
-    listAllProposals(),
+    listActors(accountId),
+    listRelationships(accountId),
+    listAllOutcomes(accountId),
+    listAllProposals(accountId),
   ]);
 
   const u = capacityUtilization(actors);
@@ -116,11 +111,12 @@ Surface at most 5 gaps. Prioritise the most actionable AND novel ones.`;
 
   const proposals: ProposedRelationship[] = [];
   for (const g of parsed.data as CartographerGap[]) {
-    const cv = await validateCitations(g.citations, VALID_METRICS);
+    const cv = await validateCitations(g.citations, VALID_METRICS, accountId);
     if (!cv.ok) continue;
     if (isDuplicateOfExisting(g, stillOpen)) continue;
     const p: ProposedRelationship = {
       id: `pr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      account_id: accountId,
       type: 'mentorship',
       candidate_parties: g.candidate_parties,
       gap_type: g.gap_type,

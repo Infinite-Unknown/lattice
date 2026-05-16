@@ -38,6 +38,7 @@ export async function POST(req: Request) {
 
   const actor: Actor = {
     id: `${PREFIX[t]}_${Math.random().toString(36).slice(2, 8)}`,
+    account_id: auth.user.account_id,
     type: t,
     name: name.trim(),
     profile,

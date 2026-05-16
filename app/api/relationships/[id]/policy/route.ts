@@ -10,7 +10,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if ('error' in auth) return auth.error;
 
   const { escalation_policy, sunset_policy } = await req.json();
-  await updatePolicy(params.id, escalation_policy, sunset_policy);
+  await updatePolicy(params.id, auth.user.account_id, escalation_policy, sunset_policy);
   await writeAuditEntry(
     auth.user, 'edit_policy', 'relationship', params.id,
     'Edited escalation + sunset policy YAML',

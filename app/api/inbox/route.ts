@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireUser } from '@/lib/auth/current-user';
 import { listRelationships } from '@/lib/data/relationships';
 import { listOpenProposals } from '@/lib/data/proposals';
 import { listActors } from '@/lib/data/actors';
@@ -8,7 +9,15 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [rels, props, actors] = await Promise.all([listRelationships(), listOpenProposals(), listActors()]);
+  const auth = await requireUser(['inbox.read']);
+  if ('error' in auth) return auth.error;
+  const accountId = auth.user.account_id;
+
+  const [rels, props, actors] = await Promise.all([
+    listRelationships(accountId),
+    listOpenProposals(accountId),
+    listActors(accountId),
+  ]);
   const nameOf = new Map(actors.map(a => [a.id, a.name]));
 
   const pendingActions = rels.flatMap(r =>

@@ -21,10 +21,10 @@ const STEWARD_RESPONSE_SCHEMA = {
 
 const VALID_METRICS = new Set<string>(); // Steward doesn't use metric: citations
 
-export async function runStewardTick(relationship: Relationship): Promise<StewardLogEntry> {
-  const partiesRaw = await Promise.all(relationship.parties.map(getActor));
+export async function runStewardTick(relationship: Relationship, accountId: string): Promise<StewardLogEntry> {
+  const partiesRaw = await Promise.all(relationship.parties.map(id => getActor(id, accountId)));
   const parties = partiesRaw.filter((p): p is Actor => p !== null);
-  const allOutcomes = await listOutcomesFor(relationship.id);
+  const allOutcomes = await listOutcomesFor(relationship.id, accountId);
   const sorted = allOutcomes.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   const recent = sorted.slice(0, 5);
 
@@ -68,7 +68,7 @@ export async function runStewardTick(relationship: Relationship): Promise<Stewar
       citations: ['outcome:none'], confidence: 0, approved: false,
     };
   } else {
-    const cv = await validateCitations(parsed.data.citations, VALID_METRICS);
+    const cv = await validateCitations(parsed.data.citations, VALID_METRICS, accountId);
     if (!cv.ok) {
       entry = {
         timestamp: new Date().toISOString(),
@@ -87,6 +87,6 @@ export async function runStewardTick(relationship: Relationship): Promise<Stewar
       };
     }
   }
-  await appendStewardLog(relationship.id, entry);
+  await appendStewardLog(relationship.id, accountId, entry);
   return entry;
 }

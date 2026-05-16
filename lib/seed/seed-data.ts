@@ -1,9 +1,15 @@
 import type { Actor, Relationship, Outcome } from '@/lib/types';
 
+// Seed entities are tenant-agnostic — the seed runner stamps `account_id`
+// onto each one at write time so the same fixture can populate any account.
+type SeedActor = Omit<Actor, 'account_id'>;
+type SeedRelationship = Omit<Relationship, 'account_id'>;
+type SeedOutcome = Omit<Outcome, 'account_id'>;
+
 const now = () => new Date().toISOString();
 const monthsAgo = (n: number) => new Date(Date.now() - n * 30 * 86400_000).toISOString();
 
-export const SEED_ACTORS: Actor[] = [
+export const SEED_ACTORS: SeedActor[] = [
   // --- Mentors (10) ---
   { id: 'm1', type: 'mentor', name: 'Aisha Rahman', profile: { bio: 'Ex-fintech VP, 12y operator', deals: ['BigPay Series A', 'StashAway seed'] },
     expertise: ['fintech', 'fundraising', 'seed-stage'], capacity: { allocated_units: 3, max_units: 5 }, status: 'active', created_at: monthsAgo(18) },
@@ -89,7 +95,7 @@ const DEFAULT_SUNSET = `triggers:
     value: 12
     action: review`;
 
-export const SEED_RELATIONSHIPS: Relationship[] = [
+export const SEED_RELATIONSHIPS: SeedRelationship[] = [
   { id: 'r1', type: 'mentorship', parties: ['m1', 'c1'], state: 'active', focus: ['fintech', 'fundraising'],
     cadence: 'bi-weekly', escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
     steward_state: { last_run: null, memory_summary: 'Series A prep underway' },
@@ -165,7 +171,7 @@ export const SEED_RELATIONSHIPS: Relationship[] = [
 ];
 
 // 50 historical outcomes, distributed across relationships
-export const SEED_OUTCOMES: Outcome[] = [
+export const SEED_OUTCOMES: SeedOutcome[] = [
   // r1 (m1-c1) — 5 outcomes
   { id: 'o1', relationship_id: 'r1', type: 'session_held', evidence_text: 'Cap-table review session', source: 'admin', verified: true, timestamp: monthsAgo(5.5) },
   { id: 'o2', relationship_id: 'r1', type: 'milestone', evidence_text: 'PayLane closed $800k pre-seed', source: 'admin', verified: true, timestamp: monthsAgo(4) },

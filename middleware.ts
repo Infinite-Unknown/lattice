@@ -11,6 +11,7 @@ const PUBLIC_PATHS = [
   '/api/auth/signout',
   '/api/auth/me',       // returns null user when not signed in
   '/api/auth/account',  // tells the sign-in form which account id to use
+  '/api/auth/accounts', // public lookup for IAM sign-in (find account by name)
 ];
 
 const COOKIE_NAME = 'lattice_session';

@@ -83,10 +83,10 @@ export default function SignUpClient() {
           </div>
 
           <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
-            Step 01 · Bootstrap
+            New account
           </div>
           <h2 className="font-sans font-bold text-3xl md:text-4xl leading-none tracking-tighter mb-10">
-            Create the<br />root user.
+            Create your<br />account.
           </h2>
 
           <form onSubmit={onSubmit} className="space-y-6">
