@@ -72,6 +72,9 @@ export interface ProposedRelationship {
   confidence: number;
   status: 'open' | 'recruited' | 'dismissed';
   created_at: string;
+  // When approval materialises this proposal into an actual Relationship,
+  // we link the two together so the audit trail is complete.
+  linked_relationship_id?: string;
 }
 
 export interface StewardActionResponse {

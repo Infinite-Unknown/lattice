@@ -33,3 +33,16 @@ export async function updatePolicy(id: string, escalation: string, sunset: strin
   r.sunset_policy = sunset;
   await upsertRelationship(r);
 }
+
+/**
+ * Return any non-closed relationship that has both actors in its parties.
+ * Used to prevent duplicate edges when materialising a Cartographer proposal.
+ */
+export async function findActiveRelationshipBetween(idA: string, idB: string): Promise<Relationship | null> {
+  const all = await listRelationships();
+  return all.find(r =>
+    r.state !== 'closed' &&
+    r.parties.includes(idA) &&
+    r.parties.includes(idB),
+  ) ?? null;
+}

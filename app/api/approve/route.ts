@@ -1,27 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getRelationship, upsertRelationship } from '@/lib/data/relationships';
+import {
+  getRelationship, upsertRelationship,
+  findActiveRelationshipBetween,
+} from '@/lib/data/relationships';
 import { upsertOutcome } from '@/lib/data/outcomes';
-import { setProposalStatus } from '@/lib/data/proposals';
+import { getProposal, setProposalRecruited, setProposalStatus } from '@/lib/data/proposals';
+import { getActor } from '@/lib/data/actors';
 import { requireUser } from '@/lib/auth/current-user';
 import { writeAuditEntry } from '@/lib/data/audit';
-import type { RelationshipState, StewardAction } from '@/lib/types';
+import { inferRelationshipType, defaultCadenceFor, pickPrincipalPair } from '@/lib/agents/relationship-inference';
+import type { Actor, Relationship, RelationshipState, StewardAction } from '@/lib/types';
 
 export const runtime = 'nodejs';
 
-/**
- * Approve / dismiss endpoint. Handles four kinds:
- *   - 'steward-log'     — approve a Steward proposal (writes outcome; auto-transitions state for taper/sunset/escalate)
- *   - 'dismiss-steward' — reject a Steward proposal (no outcome, no state change)
- *   - 'proposal'        — approve a Cartographer gap (status → recruited)
- *   - 'dismiss-proposal'— reject a Cartographer gap (status → dismissed)
- *
- * Every action writes an audit_log entry.
- * Steward-action approvals automatically transition relationship.state when
- * the action implies a lifecycle change.
- */
-
-// Which Steward actions, on approval, should automatically change the
-// relationship's lifecycle state.
 const AUTO_STATE_TRANSITION: Partial<Record<StewardAction, RelationshipState>> = {
   escalate: 'escalated',
   taper: 'tapered',
@@ -34,6 +25,22 @@ const ACTION_TO_OUTCOME_TYPE = (a: StewardAction) =>
   : a === 'escalate' ? 'issue'
   : a === 'sunset' ? 'closing_note'
   : 'milestone' as const;
+
+const DEFAULT_ESCALATION = `triggers:
+  - if: nps_below
+    value: 7
+    action: notify_admin
+  - if: no_outcome_in_days
+    value: 30
+    action: notify_admin`;
+
+const DEFAULT_SUNSET = `triggers:
+  - if: outcome_logged
+    value: closing_note
+    action: close
+  - if: duration_months_exceeds
+    value: 12
+    action: review`;
 
 export async function POST(req: Request) {
   const auth = await requireUser(['approve.write']);
@@ -59,7 +66,6 @@ export async function POST(req: Request) {
     entry.decided_by_name = user.name;
     entry.decided_at = now;
 
-    // Auto state transition for lifecycle-affecting actions
     const newState = AUTO_STATE_TRANSITION[entry.action];
     const stateChanged = newState && newState !== r.state;
     const prevState = r.state;
@@ -67,7 +73,6 @@ export async function POST(req: Request) {
 
     await upsertRelationship(r);
 
-    // Write the outcome derived from the approved action
     const outcomeId = `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     await upsertOutcome({
       id: outcomeId,
@@ -79,8 +84,6 @@ export async function POST(req: Request) {
       timestamp: now,
     });
 
-    // If the approval triggered an automatic state transition, also write an
-    // outcome explaining that, so the timeline reads as a coherent story.
     if (stateChanged) {
       await upsertOutcome({
         id: `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -89,7 +92,7 @@ export async function POST(req: Request) {
         evidence_text: `Auto state transition: ${prevState} → ${newState} (triggered by approved Steward action: ${entry.action})`,
         source: 'admin',
         verified: true,
-        timestamp: new Date(Date.now() + 1).toISOString(), // +1ms so ordering is stable
+        timestamp: new Date(Date.now() + 1).toISOString(),
       });
       await writeAuditEntry(
         user, 'auto_state_transition', 'relationship', r.id,
@@ -130,13 +133,89 @@ export async function POST(req: Request) {
   }
 
   // ---------------- Cartographer proposal: approve ----------------
+  // The big change vs prior: actually create the Relationship if the proposal
+  // names two existing actors. Otherwise gracefully fall back to "recruited"
+  // and tell the client why.
   if (kind === 'proposal') {
-    await setProposalStatus(body.proposalId, 'recruited');
+    const proposal = await getProposal(body.proposalId);
+    if (!proposal) return NextResponse.json({ error: 'proposal not found' }, { status: 404 });
+    if (proposal.status !== 'open') {
+      return NextResponse.json({ error: `proposal already ${proposal.status}` }, { status: 409 });
+    }
+
+    // Resolve candidate IDs to actor records.
+    const resolved = (await Promise.all(proposal.candidate_parties.map(getActor)))
+      .filter((a): a is Actor => a !== null);
+
+    let materializedRelationshipId: string | null = null;
+    let materializedMessage = '';
+
+    const pair = pickPrincipalPair(resolved);
+    if (!pair) {
+      materializedMessage = `Marked as recruited — the proposal references ${resolved.length} existing actor(s), need 2 to form a relationship. Form it manually from the Graph page.`;
+    } else {
+      const [a1, a2] = pair;
+      const existing = await findActiveRelationshipBetween(a1.id, a2.id);
+      if (existing) {
+        materializedMessage = `Marked as recruited — ${a1.name} and ${a2.name} already have an active ${existing.type} relationship (${existing.id}). No duplicate created.`;
+      } else {
+        const inferredType = inferRelationshipType(a1.type, a2.type);
+        const newRel: Relationship = {
+          id: `r_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+          type: inferredType,
+          parties: [a1.id, a2.id],
+          state: 'active',
+          focus: [],            // admin can fill in via relationship detail
+          cadence: defaultCadenceFor(inferredType),
+          escalation_policy: DEFAULT_ESCALATION,
+          sunset_policy: DEFAULT_SUNSET,
+          steward_state: {
+            last_run: null,
+            memory_summary: `Materialised from Cartographer proposal ${proposal.id} (${proposal.gap_type}): ${proposal.expected_impact}`,
+          },
+          steward_log: [],
+          outcomes: [],
+          created_at: now,
+          last_steward_run: null,
+        };
+        await upsertRelationship(newRel);
+
+        // Audit outcome on the new relationship so its timeline starts with provenance.
+        await upsertOutcome({
+          id: `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          relationship_id: newRel.id,
+          type: 'milestone',
+          evidence_text: `Relationship created from Cartographer proposal ${proposal.id} (gap: ${proposal.gap_type}). Reasoning: ${proposal.reasoning}`,
+          source: 'admin',
+          verified: true,
+          timestamp: now,
+        });
+
+        materializedRelationshipId = newRel.id;
+        materializedMessage = `Created ${inferredType} between ${a1.name} ↔ ${a2.name} (${newRel.id}).`;
+
+        await writeAuditEntry(
+          user, 'create_relationship', 'relationship', newRel.id,
+          `Materialised proposal ${proposal.id} → ${inferredType} between ${a1.name} and ${a2.name}`,
+        );
+      }
+    }
+
+    await setProposalRecruited(proposal.id, materializedRelationshipId ?? undefined);
+
     await writeAuditEntry(
-      user, 'approve_proposal', 'proposal', body.proposalId,
-      `Approved Cartographer proposal ${body.proposalId} (status → recruited)`,
+      user, 'approve_proposal', 'proposal', proposal.id,
+      materializedRelationshipId
+        ? `Approved proposal ${proposal.id} → materialised relationship ${materializedRelationshipId}`
+        : `Approved proposal ${proposal.id} → no relationship materialised (${materializedMessage})`,
     );
-    return NextResponse.json({ ok: true });
+
+    return NextResponse.json({
+      ok: true,
+      materialized: !!materializedRelationshipId,
+      relationshipId: materializedRelationshipId,
+      message: materializedMessage,
+    });
   }
 
   // ---------------- Cartographer proposal: dismiss ----------------

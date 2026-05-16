@@ -18,6 +18,14 @@ export default function InboxClient() {
   const [tickingAll, setTickingAll] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ kind: 'success' | 'info' | 'error'; message: string; href?: string } | null>(null);
+
+  // Auto-dismiss toast after a few seconds.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   async function refresh() {
     const r = await fetch('/api/inbox', { cache: 'no-store' });
@@ -77,11 +85,23 @@ export default function InboxClient() {
     const key = `p:${proposalId}:${decision}`;
     setBusyId(key);
     try {
-      await fetch('/api/approve', {
+      const res = await fetch('/api/approve', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ kind: decision === 'approve' ? 'proposal' : 'dismiss-proposal', proposalId }),
       });
+      const j = await res.json().catch(() => ({}));
+      if (decision === 'approve' && res.ok) {
+        setToast({
+          kind: j.materialized ? 'success' : 'info',
+          message: j.message ?? 'Proposal approved.',
+          href: j.relationshipId ? `/relationships/${j.relationshipId}` : undefined,
+        });
+      } else if (decision === 'dismiss' && res.ok) {
+        setToast({ kind: 'info', message: 'Proposal dismissed.' });
+      } else if (!res.ok) {
+        setToast({ kind: 'error', message: j.error ?? `Failed (${res.status})` });
+      }
       await refresh();
     } finally {
       setBusyId(null);
@@ -123,6 +143,22 @@ export default function InboxClient() {
       {!canRun && !canApprove && (
         <div className="mb-4 text-xs text-neutral-500 border border-neutral-800 rounded p-2">
           ◉ You&apos;re signed in as <span className="text-neutral-300 font-medium">{user?.role}</span>. This is a read-only role — actions are disabled.
+        </div>
+      )}
+
+      {toast && (
+        <div className={`mb-4 p-3 rounded border text-sm flex items-start justify-between gap-3 ${
+          toast.kind === 'success' ? 'border-emerald-800/60 bg-emerald-950/30 text-emerald-200' :
+          toast.kind === 'error' ? 'border-rose-900 bg-rose-950/30 text-rose-200' :
+          'border-neutral-700 bg-neutral-900 text-neutral-200'
+        }`}>
+          <div className="flex-1">
+            {toast.message}
+            {toast.href && (
+              <> · <a href={toast.href} className="underline">Open relationship →</a></>
+            )}
+          </div>
+          <button onClick={() => setToast(null)} className="text-neutral-500 hover:text-neutral-200" aria-label="Dismiss">×</button>
         </div>
       )}
 
