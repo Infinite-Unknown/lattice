@@ -18,7 +18,7 @@ const KIND_BORDER: Record<ChipCitation['kind'], string> = {
 };
 
 const KIND_LABEL: Record<ChipCitation['kind'], string> = {
-  actor:   'Actor',
+  actor:   'Entity',  // internal discriminator stays 'actor' but UX label is 'Entity'
   outcome: 'Outcome',
   profile: 'Profile',
   metric:  'Metric',

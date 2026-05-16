@@ -200,22 +200,30 @@ export default function AgentsClient() {
               </TabButton>
             </div>
             <div className="flex items-center gap-8">
-              <RunButton
-                onClick={tickAll}
-                disabled={!canRun || tickingAll}
-                title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
-                busy={tickingAll}
-              >
-                {tickingAll ? 'Running ticks…' : 'Run Steward tick →'}
-              </RunButton>
-              <RunButton
-                onClick={scanGaps}
-                disabled={!canScan || scanning}
-                title={canScan ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks cartographer.run`}
-                busy={scanning}
-              >
-                {scanning ? 'Scanning ecosystem…' : 'Run Cartographer scan →'}
-              </RunButton>
+              {/* Only show the agent runner that matches the active tab.
+                  Avoids cognitive load — judges on the Steward tab don't
+                  need to ask 'what does Cartographer scan do, and why is
+                  it next to the Steward queue?' */}
+              {tab === 'steward' && (
+                <RunButton
+                  onClick={tickAll}
+                  disabled={!canRun || tickingAll}
+                  title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
+                  busy={tickingAll}
+                >
+                  {tickingAll ? 'Running ticks…' : 'Run Steward tick →'}
+                </RunButton>
+              )}
+              {tab === 'cartographer' && (
+                <RunButton
+                  onClick={scanGaps}
+                  disabled={!canScan || scanning}
+                  title={canScan ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks cartographer.run`}
+                  busy={scanning}
+                >
+                  {scanning ? 'Scanning ecosystem…' : 'Run Cartographer scan →'}
+                </RunButton>
+              )}
             </div>
           </div>
 

@@ -73,7 +73,7 @@ export default function DashboardClient() {
       {/* Stat strip — poster numbers */}
       {stats ? (
         <section className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border mb-12 animate-fade-in">
-          <StatCell label="Actors" value={actorCount} hint={`${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners`} />
+          <StatCell label="Entities" value={actorCount} hint={`${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners`} />
           <StatCell label="Active relationships" value={relCount} hint="each one is an AI Steward" />
           <StatCell label="Awaiting decision" value={pendingCount} hint={pending > 0 ? 'review them on the agents page' : 'all caught up'} accent={pending > 0} />
           <StatCell label="Outcomes captured" value={outcomesCount} hint="memory for future matching" />

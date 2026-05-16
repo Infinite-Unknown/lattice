@@ -154,7 +154,7 @@ export default function GraphClient() {
                 <button
                   onClick={() => setEditingActorId(selectedNode.id)}
                   className="text-accent hover:opacity-80 transition-opacity duration-150 ml-2 underline underline-offset-4 decoration-1"
-                  title="Edit actor details"
+                  title="Edit entity details"
                 >
                   Edit
                 </button>
@@ -175,7 +175,7 @@ export default function GraphClient() {
                 className="group inline-flex items-center font-semibold uppercase tracking-wider text-xs text-accent py-2 transition-all duration-150 ease-crisp active:translate-y-px"
               >
                 <span className="relative">
-                  + Add actor
+                  + Add entity
                   <span
                     aria-hidden="true"
                     className="absolute -bottom-1 left-0 right-0 h-0.5 bg-accent transition-transform duration-150 ease-crisp group-hover:scale-x-110"
@@ -344,7 +344,7 @@ export default function GraphClient() {
         <div className="grid md:grid-cols-3 gap-px bg-border">
           <div className="bg-background p-6">
             <div className="font-mono text-xs uppercase tracking-widest text-foreground mb-4">
-              Actors / Nodes
+              Entities / Nodes
             </div>
             <div className="space-y-3">
               <LegendDot color="#34d399" label="Mentor" hint="experienced operator" />
