@@ -1,17 +1,22 @@
 'use client';
 import Link from 'next/link';
 import { useAuth } from './AuthContext';
+import { useReveal } from './hooks/useReveal';
 
 export default function LandingClient() {
   const { user, account, loading } = useAuth();
   const isSignedIn = !!user;
+
+  const painRef = useReveal<HTMLElement>();
+  const anatomyRef = useReveal<HTMLElement>();
+  const ctaRef = useReveal<HTMLElement>();
 
   return (
     <div>
       {/* Own minimal header — AppShell skips its nav for this route */}
       <header className="border-b border-neutral-800">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="font-semibold text-lg flex items-center gap-2">
+          <Link href="/" className="font-semibold text-lg flex items-center gap-2 transition-colors duration-150 hover:text-amber-300">
             <span className="text-amber-400">◉</span> Lattice
           </Link>
           <div className="flex items-center gap-3">
@@ -19,18 +24,18 @@ export default function LandingClient() {
               isSignedIn ? (
                 <Link
                   href="/dashboard"
-                  className="px-4 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+                  className="px-4 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
                 >
                   Go to dashboard →
                 </Link>
               ) : (
                 <>
-                  <Link href="/sign-in" className="text-sm text-neutral-300 hover:text-white">
+                  <Link href="/sign-in" className="text-sm text-neutral-300 hover:text-white transition-colors duration-150">
                     Sign in
                   </Link>
                   <Link
                     href="/sign-up"
-                    className="px-4 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium"
+                    className="px-4 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
                   >
                     Get started
                   </Link>
@@ -42,17 +47,35 @@ export default function LandingClient() {
       </header>
 
       <div className="max-w-6xl mx-auto px-6 py-16">
-        {/* Hero */}
-        <section className="mb-20">
-          <div className="text-xs uppercase tracking-[0.2em] text-amber-400 mb-4 font-medium">
+        {/* Hero — staggered entrance, subtle gradient drift behind */}
+        <section className="mb-20 relative">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 opacity-40 pointer-events-none animate-gradient-drift"
+            style={{
+              background:
+                'radial-gradient(ellipse 60% 40% at 30% 20%, rgba(251,191,36,0.10), transparent 60%), radial-gradient(ellipse 50% 35% at 70% 60%, rgba(52,211,153,0.08), transparent 60%)',
+              backgroundSize: '200% 200%',
+            }}
+          />
+          <div
+            className="text-xs uppercase tracking-[0.2em] text-amber-400 mb-4 font-medium animate-fade-in-up"
+            style={{ animationDelay: '0ms' }}
+          >
             Lattice · Autonomous Ecosystem Operations OS
           </div>
-          <h1 className="text-5xl md:text-6xl font-semibold leading-tight mb-6">
+          <h1
+            className="text-5xl md:text-6xl font-semibold leading-tight mb-6 animate-fade-in-up"
+            style={{ animationDelay: '120ms' }}
+          >
             Relationships that run themselves.
             <br />
             <span className="text-neutral-500">An ecosystem that completes itself.</span>
           </h1>
-          <p className="text-neutral-300 max-w-3xl text-lg leading-relaxed mb-8">
+          <p
+            className="text-neutral-300 max-w-3xl text-lg leading-relaxed mb-8 animate-fade-in-up"
+            style={{ animationDelay: '240ms' }}
+          >
             Lattice is built for <span className="text-white font-medium">programme owners and ecosystem
             administrators</span> at accelerators, corporate venture arms, and agencies like Cradle.
             We turn every linkage in your ecosystem — mentor ↔ founder, company ↔ programme,
@@ -60,11 +83,14 @@ export default function LandingClient() {
             {' '}that proposes its own next action. You stop coordinating. You start governing.
           </p>
           {!loading && (
-            <div className="flex gap-3">
+            <div
+              className="flex gap-3 animate-fade-in-up"
+              style={{ animationDelay: '360ms' }}
+            >
               {isSignedIn ? (
                 <Link
                   href="/dashboard"
-                  className="px-5 py-2.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+                  className="px-5 py-2.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
                 >
                   Open your dashboard{account ? ` · ${account.name}` : ''}
                 </Link>
@@ -72,13 +98,13 @@ export default function LandingClient() {
                 <>
                   <Link
                     href="/sign-up"
-                    className="px-5 py-2.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium"
+                    className="px-5 py-2.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
                   >
                     Get started — bootstrap your account
                   </Link>
                   <Link
                     href="/sign-in"
-                    className="px-5 py-2.5 rounded border border-neutral-700 hover:bg-neutral-900 text-sm font-medium"
+                    className="px-5 py-2.5 rounded border border-neutral-700 hover:bg-neutral-900 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
                   >
                     Sign in
                   </Link>
@@ -89,7 +115,7 @@ export default function LandingClient() {
         </section>
 
         {/* Why this matters → How Lattice answers */}
-        <section className="mb-20">
+        <section ref={painRef} className="mb-20 reveal-on-scroll">
           <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-4 font-medium">
             The Cradle problem · How Lattice solves each piece
           </div>
@@ -126,11 +152,11 @@ export default function LandingClient() {
         </section>
 
         {/* Anatomy of a Lattice Relationship */}
-        <section className="mb-20">
+        <section ref={anatomyRef} className="mb-20 reveal-on-scroll">
           <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-4 font-medium">
             What is a Lattice relationship?
           </div>
-          <div className="border border-neutral-800 rounded-lg p-6 bg-neutral-900/30">
+          <div className="border border-neutral-800 rounded-lg p-6 bg-neutral-900/30 transition-colors duration-200 hover:border-neutral-700">
             <p className="text-neutral-300 mb-5 max-w-3xl leading-relaxed">
               Today, a mentor-founder pairing is a row in a spreadsheet. In Lattice, it&apos;s a{' '}
               <span className="text-emerald-300 font-medium">first-class entity</span> with its own
@@ -226,18 +252,18 @@ sunset:
         </section>
 
         {/* Bottom CTA */}
-        <section className="mb-12 text-center">
+        <section ref={ctaRef} className="mb-12 text-center reveal-on-scroll">
           {!loading && (isSignedIn ? (
             <Link
               href="/dashboard"
-              className="inline-block px-6 py-3 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+              className="inline-block px-6 py-3 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
             >
               Go to your dashboard →
             </Link>
           ) : (
             <Link
               href="/sign-up"
-              className="inline-block px-6 py-3 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium"
+              className="inline-block px-6 py-3 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium transition-colors duration-150 active:scale-[0.97]"
             >
               Bootstrap your Lattice account →
             </Link>
@@ -263,7 +289,7 @@ function Pain({
 }) {
   const accent = color === 'emerald' ? 'text-emerald-400' : 'text-amber-400';
   return (
-    <div className="border border-neutral-800 rounded-lg overflow-hidden">
+    <div className="border border-neutral-800 rounded-lg overflow-hidden transition-colors duration-200 hover:border-neutral-700">
       <div className="p-4 bg-rose-950/10 border-b border-neutral-800">
         <div className="text-xs uppercase tracking-wider text-rose-400 mb-1 font-medium">The pain</div>
         <div className="font-semibold mb-1">{problem}</div>
