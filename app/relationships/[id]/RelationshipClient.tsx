@@ -1,13 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
+import Spinner from '../../components/Spinner';
+
+type StewardLogEntry = {
+  timestamp: string;
+  action: string;
+  reasoning: string;
+  citations: string[];
+  confidence: number;
+  approved: boolean;
+  dismissed?: boolean;
+  decided_by_name?: string;
+  decided_at?: string;
+};
 
 type Data = {
   relationship: {
     id: string; type: string; state: string; focus: string[]; cadence: string;
     escalation_policy: string; sunset_policy: string;
     steward_state: { last_run: string | null; memory_summary: string };
-    steward_log: Array<{ timestamp: string; action: string; reasoning: string; citations: string[]; confidence: number; approved: boolean }>;
+    steward_log: StewardLogEntry[];
   };
   parties: Array<{ id: string; name: string }>;
   outcomes: Array<{ id: string; type: string; evidence_text: string; timestamp: string; source: string; verified: boolean }>;
@@ -23,6 +36,8 @@ export default function RelationshipClient({ id }: { id: string }) {
   const [sunset, setSunset] = useState('');
   const [tab, setTab] = useState<'timeline' | 'steward' | 'policy'>('timeline');
   const [stateBusy, setStateBusy] = useState(false);
+  const [ticking, setTicking] = useState(false);
+  const [savingPolicy, setSavingPolicy] = useState(false);
 
   const [notFound, setNotFound] = useState(false);
 
@@ -37,13 +52,32 @@ export default function RelationshipClient({ id }: { id: string }) {
   useEffect(() => { refresh(); }, [id]);
 
   async function savePolicy() {
-    await fetch(`/api/relationships/${id}/policy`, { method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ escalation_policy: escalation, sunset_policy: sunset }) });
-    refresh();
+    if (savingPolicy) return;
+    setSavingPolicy(true);
+    try {
+      await fetch(`/api/relationships/${id}/policy`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ escalation_policy: escalation, sunset_policy: sunset }),
+      });
+      await refresh();
+    } finally {
+      setSavingPolicy(false);
+    }
   }
   async function tickSteward() {
-    await fetch('/api/steward/tick', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ relationshipId: id }) });
-    refresh();
+    if (ticking) return;
+    setTicking(true);
+    try {
+      await fetch('/api/steward/tick', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ relationshipId: id }),
+      });
+      await refresh();
+    } finally {
+      setTicking(false);
+    }
   }
   async function transitionState(next: 'active' | 'tapered' | 'closed', confirmMsg: string) {
     if (!confirm(confirmMsg)) return;
@@ -147,11 +181,12 @@ export default function RelationshipClient({ id }: { id: string }) {
         <button onClick={() => setTab('policy')} className={`px-3 py-1.5 rounded ${tab === 'policy' ? 'bg-amber-700' : 'bg-neutral-900'}`}>Policy</button>
         <button
           onClick={tickSteward}
-          disabled={!canRun}
+          disabled={!canRun || ticking}
           title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
-          className="ml-auto px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="ml-auto px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          Run Steward tick
+          {ticking && <Spinner />}
+          {ticking ? 'Steward thinking…' : 'Run Steward tick'}
         </button>
       </div>
 
@@ -168,14 +203,42 @@ export default function RelationshipClient({ id }: { id: string }) {
 
       {tab === 'steward' && (
         <div className="space-y-3">
-          {data.relationship.steward_log.length === 0 && <p className="text-neutral-500">No Steward runs yet. Click "Run Steward tick".</p>}
-          {data.relationship.steward_log.slice().reverse().map(e => (
-            <div key={e.timestamp} className="border border-neutral-800 rounded p-3">
-              <div className="text-xs text-neutral-500">{new Date(e.timestamp).toLocaleString()} · action: <span className="text-emerald-400">{e.action}</span> · conf {e.confidence.toFixed(2)} · {e.approved ? '✓ approved' : 'pending'}</div>
-              <div className="text-sm mt-1">{e.reasoning}</div>
-              <div className="text-xs text-neutral-500 mt-1">citations: {e.citations.join(', ')}</div>
-            </div>
-          ))}
+          {data.relationship.steward_log.length === 0 && <p className="text-neutral-500 text-sm">No Steward runs yet. Click &quot;Run Steward tick&quot;.</p>}
+          {data.relationship.steward_log.slice().reverse().map(e => {
+            const status = e.approved ? 'approved' : e.dismissed ? 'dismissed' : 'pending';
+            const statusColor =
+              status === 'approved' ? 'text-emerald-400' :
+              status === 'dismissed' ? 'text-rose-400' :
+              'text-amber-400';
+            return (
+              <div key={e.timestamp} className={`border rounded p-3 ${
+                status === 'dismissed' ? 'border-rose-900/40 bg-rose-950/10' :
+                status === 'approved' ? 'border-emerald-900/40 bg-emerald-950/10' :
+                'border-neutral-800'
+              }`}>
+                <div className="text-xs text-neutral-500 flex items-center gap-2 flex-wrap">
+                  <span>{new Date(e.timestamp).toLocaleString()}</span>
+                  <span>·</span>
+                  <span>action: <span className="text-emerald-400">{e.action}</span></span>
+                  <span>·</span>
+                  <span>conf {e.confidence.toFixed(2)}</span>
+                  <span>·</span>
+                  <span className={statusColor}>
+                    {status === 'approved' && '✓ approved'}
+                    {status === 'dismissed' && '✗ dismissed'}
+                    {status === 'pending' && '⏳ pending'}
+                  </span>
+                  {e.decided_by_name && e.decided_at && (
+                    <span className="text-neutral-500">
+                      by <span className="text-neutral-300">{e.decided_by_name}</span> at {new Date(e.decided_at).toLocaleTimeString()}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm mt-1">{e.reasoning}</div>
+                <div className="text-xs text-neutral-500 mt-1">citations: {e.citations.join(', ')}</div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -207,11 +270,12 @@ export default function RelationshipClient({ id }: { id: string }) {
           </div>
           <button
             onClick={savePolicy}
-            disabled={!canEditPolicy}
+            disabled={!canEditPolicy || savingPolicy}
             title={canEditPolicy ? undefined : `Your role (${user?.role}) lacks policy.write`}
-            className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Save policy
+            {savingPolicy && <Spinner />}
+            {savingPolicy ? 'Saving…' : 'Save policy'}
           </button>
           <p className="text-xs text-neutral-500">Tip: edit a policy, save, then click &quot;Run Steward tick&quot; — watch the agent reflect your change.</p>
         </div>

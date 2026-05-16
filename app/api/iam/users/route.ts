@@ -5,6 +5,7 @@ import { ASSIGNABLE_IAM_ROLES } from '@/lib/auth/permissions';
 import { toPublicUser, type User, type Role } from '@/lib/auth/types';
 import { syntheticEmailForIam } from '@/lib/auth/identity';
 import { getAdminAuth } from '@/lib/firebase-admin';
+import { writeAuditEntry } from '@/lib/data/audit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,6 +77,11 @@ export async function POST(req: Request) {
     account_id: r.user.account_id,
     type: 'iam',
   });
+
+  await writeAuditEntry(
+    r.user, 'create_iam_user', 'iam_user', user.id,
+    `Created IAM user '${user.username}' (${user.name}) with role ${user.role}`,
+  );
 
   return NextResponse.json({ user: toPublicUser(user) });
 }

@@ -38,6 +38,11 @@ export interface StewardLogEntry {
   citations: string[];
   confidence: number;
   approved: boolean;
+  // Decision metadata (populated when approved or dismissed by an admin)
+  dismissed?: boolean;
+  decided_by_user_id?: string;
+  decided_by_name?: string;
+  decided_at?: string;
 }
 
 export interface Relationship {

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/current-user';
 import { upsertRelationship } from '@/lib/data/relationships';
 import { getActor } from '@/lib/data/actors';
+import { writeAuditEntry } from '@/lib/data/audit';
 import type { Relationship, RelationshipType } from '@/lib/types';
 
 const TYPES: RelationshipType[] = ['mentorship', 'company_in_programme', 'partner_in_initiative', 'service_engagement'];
@@ -63,5 +64,9 @@ export async function POST(req: Request) {
     last_steward_run: null,
   };
   await upsertRelationship(rel);
+  await writeAuditEntry(
+    auth.user, 'create_relationship', 'relationship', rel.id,
+    `Created ${rel.type} between ${a1.name} ↔ ${a2.name}`,
+  );
   return NextResponse.json({ relationship: rel });
 }

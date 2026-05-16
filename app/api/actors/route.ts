@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/current-user';
 import { upsertActor } from '@/lib/data/actors';
+import { writeAuditEntry } from '@/lib/data/audit';
 import type { Actor, ActorType } from '@/lib/types';
 
 const TYPES: ActorType[] = ['mentor', 'company', 'programme', 'partner'];
@@ -46,5 +47,9 @@ export async function POST(req: Request) {
     created_at: new Date().toISOString(),
   };
   await upsertActor(actor);
+  await writeAuditEntry(
+    auth.user, 'create_actor', 'actor', actor.id,
+    `Created ${actor.type} '${actor.name}' (id: ${actor.id})`,
+  );
   return NextResponse.json({ actor });
 }

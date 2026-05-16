@@ -46,6 +46,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/graph">Graph</NavLink>
           <NavInbox />
+          <NavLink href="/audit">Audit</NavLink>
           {can('iam.manage') && <NavLink href="/iam">IAM</NavLink>}
         </div>
 

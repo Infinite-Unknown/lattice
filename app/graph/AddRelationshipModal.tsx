@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Modal from '../components/Modal';
 
 const TYPES = [
@@ -12,12 +12,13 @@ const TYPES = [
 type NodeOption = { id: string; name: string; type: string };
 
 export default function AddRelationshipModal({
-  open, onClose, onCreated, actors,
+  open, onClose, onCreated, actors, prefilledPartyA,
 }: {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
   actors: NodeOption[];
+  prefilledPartyA?: string;
 }) {
   const [type, setType] = useState<'mentorship' | 'company_in_programme' | 'partner_in_initiative' | 'service_engagement'>('mentorship');
   const [partyA, setPartyA] = useState('');
@@ -27,8 +28,18 @@ export default function AddRelationshipModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Sync prefilled party A when the modal opens (or when selection changes upstream).
+  useEffect(() => {
+    if (open && prefilledPartyA) setPartyA(prefilledPartyA);
+  }, [open, prefilledPartyA]);
+
   function reset() {
-    setType('mentorship'); setPartyA(''); setPartyB(''); setFocus(''); setCadence('bi-weekly'); setError(null);
+    setType('mentorship');
+    setPartyA(prefilledPartyA ?? '');
+    setPartyB('');
+    setFocus('');
+    setCadence('bi-weekly');
+    setError(null);
   }
 
   async function onSubmit(e: React.FormEvent) {

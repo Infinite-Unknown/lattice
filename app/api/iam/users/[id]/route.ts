@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/current-user';
 import { deleteUser, getUser } from '@/lib/data/users';
 import { getAdminAuth } from '@/lib/firebase-admin';
+import { writeAuditEntry } from '@/lib/data/audit';
 
 export const runtime = 'nodejs';
 
@@ -26,5 +27,9 @@ export async function DELETE(_: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: e?.message ?? 'firebase deleteUser failed' }, { status: 500 });
   }
   await deleteUser(params.id);
+  await writeAuditEntry(
+    r.user, 'revoke_iam_user', 'iam_user', target.id,
+    `Revoked IAM user '${target.username ?? target.name}' (role: ${target.role})`,
+  );
   return NextResponse.json({ ok: true });
 }

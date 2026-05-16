@@ -139,14 +139,14 @@ export default function LandingClient() {
             </p>
 
             <div className="grid md:grid-cols-[1fr_auto_1fr] gap-4 items-center mb-6">
-              <PartyCard color="#34d399" type="Mentor" name="Aisha Rahman" sub="fintech · fundraising · seed" />
+              <PartyCard color="#34d399" type="Party A" name="<actor>" sub="any type · profile · expertise tags · capacity" />
               <div className="text-center">
                 <div className="px-3 py-1.5 rounded-full bg-emerald-900/30 border border-emerald-700/60 text-emerald-300 text-xs whitespace-nowrap inline-block">
-                  ⟶ mentorship ⟵
+                  ⟶ relationship ⟵
                 </div>
-                <div className="text-xs text-neutral-500 mt-1">bi-weekly · seed-stage</div>
+                <div className="text-xs text-neutral-500 mt-1">cadence · focus tags</div>
               </div>
-              <PartyCard color="#60a5fa" type="Company" name="PayLane" sub="seed · B2B payments" />
+              <PartyCard color="#60a5fa" type="Party B" name="<actor>" sub="any type · profile · expertise tags · capacity" />
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -154,14 +154,14 @@ export default function LandingClient() {
                 label="Schema"
                 accent="emerald"
                 body={
-                  <div className="space-y-1 text-sm">
-                    <KV k="type" v="mentorship" />
-                    <KV k="state" v="active" accent="emerald" />
-                    <KV k="focus" v="['fintech', 'fundraising']" />
-                    <KV k="cadence" v="bi-weekly" />
+                  <div className="space-y-1 text-sm font-mono">
+                    <KV k="type" v="mentorship | company_in_programme | partner_in_initiative | service_engagement" />
+                    <KV k="state" v="active | escalated | tapered | closed" />
+                    <KV k="focus" v="string[]" />
+                    <KV k="cadence" v="string" />
                   </div>
                 }
-                hint="A typed, queryable record — not free text."
+                hint="A typed, queryable record. Same shape across every account, every programme."
               />
 
               <AnatomyBlock
@@ -184,15 +184,15 @@ export default function LandingClient() {
                 body={
                   <pre className="text-xs text-neutral-300 bg-neutral-950 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`escalation:
   triggers:
-    - if: nps_below
-      value: 7
-      action: notify_admin
+    - if: <metric>
+      value: <threshold>
+      action: <admin_signal>
 
 sunset:
   triggers:
-    - if: outcome_logged
-      value: closing_note
-      action: close`}</pre>
+    - if: <event>
+      value: <match>
+      action: close | review`}</pre>
                 }
                 hint="Edit the YAML, save, and the next Steward tick obeys the new rule."
               />
@@ -201,10 +201,22 @@ sunset:
                 label="Outcomes (memory)"
                 accent="emerald"
                 body={
-                  <div className="space-y-1.5 text-xs">
-                    <OutcomeRow type="session_held" text="Series A deck review" age="2 mo ago" />
-                    <OutcomeRow type="intro_made" text="Intro to Maybank Ventures" age="3.5 mo ago" />
-                    <OutcomeRow type="milestone" text="Closed $800k pre-seed" age="4 mo ago" verified />
+                  <div className="space-y-1.5 text-xs font-mono">
+                    <div className="text-neutral-300">
+                      <span className="text-emerald-400">session_held</span>
+                      <span className="text-neutral-500"> | </span>
+                      <span className="text-emerald-400">intro_made</span>
+                      <span className="text-neutral-500"> | </span>
+                      <span className="text-emerald-400">milestone</span>
+                    </div>
+                    <div className="text-neutral-300">
+                      <span className="text-emerald-400">issue</span>
+                      <span className="text-neutral-500"> | </span>
+                      <span className="text-emerald-400">closing_note</span>
+                    </div>
+                    <div className="text-neutral-500 text-[10px] pt-1">
+                      each outcome: { '{ id, type, evidence_text, source, verified, timestamp }' }
+                    </div>
                   </div>
                 }
                 hint="Every approval becomes citable evidence for the next tick."

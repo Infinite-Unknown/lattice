@@ -74,10 +74,13 @@ export default function GraphClient() {
   const canWriteRelationship = can('relationship.write');
   const [data, setData] = useState<GraphData | null>(null);
   const [hoveredLink, setHoveredLink] = useState<GraphLink | null>(null);
+  const [hoveredNode, setHoveredNode] = useState<GraphData['nodes'][number] | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [showAddActor, setShowAddActor] = useState(false);
   const [showAddRelationship, setShowAddRelationship] = useState(false);
   const router = useRouter();
   const fgRef = useRef<any>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   async function refresh() {
     const r = await fetch('/api/graph', { cache: 'no-store' });
@@ -86,29 +89,60 @@ export default function GraphClient() {
 
   useEffect(() => { refresh(); }, []);
 
+  // Toggle cursor on the graph container as the user hovers nodes/links.
+  useEffect(() => {
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.style.cursor = (hoveredNode || hoveredLink) ? 'pointer' : 'default';
+    }
+  }, [hoveredNode, hoveredLink]);
+
+  const selectedNode = selectedNodeId ? data?.nodes.find(n => n.id === selectedNodeId) ?? null : null;
+
   if (!data) return <div className="text-neutral-500 py-8">Loading graph…</div>;
 
   return (
     <div className="space-y-4">
-      {/* Admin actions */}
+      {/* Top actions row — Add actor is always available; Add relationship is contextual */}
       {(canWriteActor || canWriteRelationship) && (
-        <div className="flex justify-end gap-2">
-          {canWriteActor && (
-            <button
-              onClick={() => setShowAddActor(true)}
-              className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
-            >
-              + Add actor
-            </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {selectedNode && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-700 text-xs">
+              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: NODE_COLORS[selectedNode.type] ?? '#94a3b8' }}></span>
+              <span className="font-medium">{selectedNode.name}</span>
+              <span className="text-neutral-500">selected</span>
+              <button
+                onClick={() => setSelectedNodeId(null)}
+                className="text-neutral-500 hover:text-neutral-200 ml-1"
+                aria-label="Clear selection"
+              >
+                ×
+              </button>
+            </div>
           )}
-          {canWriteRelationship && (
-            <button
-              onClick={() => setShowAddRelationship(true)}
-              className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
-            >
-              + Add relationship
-            </button>
-          )}
+          <div className="ml-auto flex gap-2">
+            {canWriteActor && (
+              <button
+                onClick={() => setShowAddActor(true)}
+                className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-sm font-medium"
+              >
+                + Add actor
+              </button>
+            )}
+            {canWriteRelationship && selectedNode && (
+              <button
+                onClick={() => setShowAddRelationship(true)}
+                className="px-3 py-1.5 rounded bg-amber-700 hover:bg-amber-600 text-sm font-medium"
+              >
+                + Form relationship from {selectedNode.name}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {canWriteRelationship && !selectedNode && (
+        <div className="text-xs text-neutral-500 border border-neutral-800 rounded p-2 bg-neutral-900/30">
+          💡 Click any node to select it, then form a new relationship starting from there.
         </div>
       )}
 
@@ -116,11 +150,12 @@ export default function GraphClient() {
       <AddRelationshipModal
         open={showAddRelationship}
         onClose={() => setShowAddRelationship(false)}
-        onCreated={refresh}
+        onCreated={() => { refresh(); setSelectedNodeId(null); }}
         actors={data.nodes}
+        prefilledPartyA={selectedNodeId ?? undefined}
       />
       {/* Graph canvas */}
-      <div className="border border-neutral-800 rounded-lg relative overflow-hidden" style={{ height: '60vh' }}>
+      <div ref={canvasContainerRef} className="border border-neutral-800 rounded-lg relative overflow-hidden" style={{ height: '60vh' }}>
         <ForceGraph2D
           ref={fgRef}
           graphData={data as any}
@@ -131,20 +166,48 @@ export default function GraphClient() {
             return `${l.label}\n${RELATIONSHIP_TYPE_LABEL[l.type] ?? l.type} · ${l.state}${cadence}${focusBits}`;
           }}
           nodeCanvasObject={(node: any, ctx, scale) => {
-            const r = 6;
+            const baseR = 6;
+            const isHovered = hoveredNode?.id === node.id;
+            const isSelected = selectedNodeId === node.id;
+            const r = isHovered || isSelected ? baseR + 2 : baseR;
+
+            // Selection / hover halo
+            if (isSelected) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r + 5, 0, 2 * Math.PI);
+              ctx.fillStyle = '#fbbf2433'; // amber glow
+              ctx.fill();
+            } else if (isHovered) {
+              ctx.beginPath();
+              ctx.arc(node.x, node.y, r + 4, 0, 2 * Math.PI);
+              ctx.fillStyle = '#ffffff22';
+              ctx.fill();
+            }
+
+            // Filled circle
             ctx.fillStyle = NODE_COLORS[node.type] ?? '#94a3b8';
             ctx.beginPath();
             ctx.arc(node.x, node.y, r, 0, 2 * Math.PI);
             ctx.fill();
-            // outline ring for visibility
-            ctx.strokeStyle = '#0a0a0a';
-            ctx.lineWidth = 1;
+
+            // Outline ring
+            ctx.strokeStyle = isSelected ? '#fbbf24' : '#0a0a0a';
+            ctx.lineWidth = isSelected ? 2 : 1;
             ctx.stroke();
-            if (scale > 1.4) {
+
+            // Label when zoomed in OR when hovered
+            if (scale > 1.4 || isHovered || isSelected) {
               ctx.fillStyle = '#e5e5e5';
-              ctx.font = '4px sans-serif';
-              ctx.fillText(node.name, node.x + 8, node.y + 3);
+              ctx.font = `${isHovered || isSelected ? 'bold ' : ''}4px sans-serif`;
+              ctx.fillText(node.name, node.x + r + 2, node.y + 2);
             }
+          }}
+          nodePointerAreaPaint={(node: any, color: string, ctx) => {
+            // Make the hit-area slightly larger than the visual circle so hover is forgiving.
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 10, 0, 2 * Math.PI);
+            ctx.fill();
           }}
           linkColor={(l: any) => edgeStyle(l).color}
           linkWidth={(l: any) => edgeStyle(l).width}
@@ -154,6 +217,8 @@ export default function GraphClient() {
           linkDirectionalParticleWidth={(l: any) => (l.state === 'escalated' ? 3 : 2)}
           onLinkHover={(l: any) => setHoveredLink(l as GraphLink | null)}
           onLinkClick={(l: any) => router.push(`/relationships/${l.id}`)}
+          onNodeHover={(n: any) => setHoveredNode(n as any)}
+          onNodeClick={(n: any) => setSelectedNodeId(n.id)}
           backgroundColor="#0a0a0a"
         />
 

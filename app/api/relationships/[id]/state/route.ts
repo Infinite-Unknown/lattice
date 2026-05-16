@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/current-user';
 import { getRelationship, upsertRelationship } from '@/lib/data/relationships';
 import { upsertOutcome } from '@/lib/data/outcomes';
+import { writeAuditEntry } from '@/lib/data/audit';
 import type { RelationshipState } from '@/lib/types';
 
 const TRANSITIONABLE_TO: RelationshipState[] = ['active', 'tapered', 'closed'];
@@ -35,6 +36,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     verified: true,
     timestamp: new Date().toISOString(),
   });
+
+  await writeAuditEntry(
+    auth.user, 'transition_relationship_state', 'relationship', r.id,
+    `State ${prevState} → ${next}`,
+  );
 
   return NextResponse.json({ ok: true, state: next });
 }
