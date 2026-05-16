@@ -9,7 +9,8 @@
     "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx lib/seed/seed.ts"
+    "seed": "tsx lib/seed/seed.ts",
+    "reset": "tsx lib/seed/reset.ts"
   },
   "dependencies": {
     "@google/genai": "^2.3.0",
