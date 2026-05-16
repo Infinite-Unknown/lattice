@@ -3,3 +3,38 @@
 @tailwind utilities;
 
 body { @apply bg-neutral-950 text-neutral-100; }
+
+/* Free smooth route fades in modern browsers; Firefox ignores. */
+@view-transition { navigation: auto; }
+
+/* Reveal-on-scroll base. Default = visible so SSR/no-JS shows content. */
+.reveal-on-scroll {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 600ms ease-out, transform 600ms ease-out;
+}
+
+/* When JS mounts, useReveal sets data-reveal="pending" until in viewport,
+   then "shown". Pending state hides; shown state animates in. */
+.reveal-on-scroll[data-reveal="pending"] {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.reveal-on-scroll[data-reveal="shown"] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Respect users who've asked for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-on-scroll[data-reveal="pending"] {
+    opacity: 1;
+    transform: none;
+  }
+}
