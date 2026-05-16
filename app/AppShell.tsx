@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { signOut as firebaseSignOut } from 'firebase/auth';
+import { getClientAuth } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 import NavInbox from './NavInbox';
 
@@ -25,6 +27,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
+    // Clear client-side Firebase Auth state too so the next /sign-in attempt
+    // gets a fresh credential prompt instead of silently using a cached identity.
+    try { await firebaseSignOut(getClientAuth()); } catch { /* ignore */ }
     await fetch('/api/auth/signout', { method: 'POST' });
     router.push('/sign-in');
     router.refresh();

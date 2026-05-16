@@ -1,7 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { signInAsRoot, signInAsIam } from '@/lib/auth/client-flow';
 
 export default function SignInClient() {
   const router = useRouter();
@@ -9,28 +10,41 @@ export default function SignInClient() {
   const next = params.get('next') ?? '/';
 
   const [mode, setMode] = useState<'root' | 'iam'>('root');
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [accountName, setAccountName] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Discover which Account this Lattice instance belongs to so we can compute
+  // the synthetic email for IAM sign-in.
+  useEffect(() => {
+    fetch('/api/auth/account').then(r => r.json()).then(j => {
+      if (j.account) {
+        setAccountId(j.account.id);
+        setAccountName(j.account.name);
+      }
+    });
+  }, []);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch('/api/auth/signin', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mode, email, username, password }),
-      });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error ?? 'sign-in failed');
+      if (mode === 'root') {
+        await signInAsRoot(email, password);
+      } else {
+        if (!accountId) throw new Error('No Lattice account exists yet. Bootstrap a root account first.');
+        await signInAsIam(accountId, username, password);
+      }
       router.push(next);
       router.refresh();
     } catch (e: any) {
-      setError(e.message);
+      // Firebase Auth error codes are like 'auth/invalid-credential' — show a friendly message.
+      setError(humanizeAuthError(e?.code ?? e?.message ?? 'sign-in failed'));
     } finally {
       setLoading(false);
     }
@@ -41,7 +55,12 @@ export default function SignInClient() {
       <div className="text-xs uppercase tracking-[0.2em] text-emerald-400 mb-2 font-medium">
         Sign in to Lattice
       </div>
-      <h1 className="text-3xl font-semibold mb-6">Welcome back</h1>
+      <h1 className="text-3xl font-semibold mb-2">Welcome back</h1>
+      {accountName && (
+        <div className="text-sm text-neutral-500 mb-6">
+          Account: <span className="text-neutral-300">{accountName}</span>
+        </div>
+      )}
 
       {/* Tab toggle, AWS-style root / IAM */}
       <div className="flex gap-2 mb-4 border-b border-neutral-800">
@@ -120,6 +139,19 @@ export default function SignInClient() {
       </div>
     </div>
   );
+}
+
+function humanizeAuthError(code: string): string {
+  if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
+    return 'Invalid credentials.';
+  }
+  if (code.includes('too-many-requests')) {
+    return 'Too many attempts. Try again in a few minutes.';
+  }
+  if (code.includes('network-request-failed')) {
+    return 'Network error reaching Firebase Auth.';
+  }
+  return code;
 }
 
 function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {

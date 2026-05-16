@@ -24,7 +24,7 @@ export async function deleteUser(id: string): Promise<void> {
 export async function findUserByEmail(email: string): Promise<User | null> {
   const snap = await getAdminDb()
     .collection(COL)
-    .where('email', '==', email.toLowerCase())
+    .where('firebase_email', '==', email.toLowerCase())
     .limit(1)
     .get();
   return snap.empty ? null : (snap.docs[0].data() as User);
@@ -38,8 +38,4 @@ export async function findUserByUsername(accountId: string, username: string): P
     .limit(1)
     .get();
   return snap.empty ? null : (snap.docs[0].data() as User);
-}
-
-export function newUserId(): string {
-  return 'u_' + Math.random().toString(36).slice(2, 12);
 }

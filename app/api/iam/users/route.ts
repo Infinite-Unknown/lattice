@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth/current-user';
-import { findUserByUsername, listUsers, newUserId, upsertUser } from '@/lib/data/users';
-import { hashPassword } from '@/lib/auth/passwords';
+import { findUserByUsername, listUsers, upsertUser } from '@/lib/data/users';
 import { ASSIGNABLE_IAM_ROLES } from '@/lib/auth/permissions';
 import { toPublicUser, type User, type Role } from '@/lib/auth/types';
+import { syntheticEmailForIam } from '@/lib/auth/identity';
+import { getAdminAuth } from '@/lib/firebase-admin';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,22 +36,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'username must be 3-32 chars, lowercase alphanumeric or . _ -' }, { status: 400 });
   }
 
-  const dup = await findUserByUsername(r.user.account_id, username.toLowerCase());
+  const lowerName = username.toLowerCase();
+  const dup = await findUserByUsername(r.user.account_id, lowerName);
   if (dup) return NextResponse.json({ error: 'username already in use in this account' }, { status: 409 });
+
+  // Mint a Firebase Auth user with a synthetic email so password sign-in works
+  // even though IAM users don't have a real email of their own.
+  const auth = getAdminAuth();
+  const firebaseEmail = syntheticEmailForIam(r.user.account_id, lowerName);
+
+  let firebaseUser;
+  try {
+    firebaseUser = await auth.createUser({
+      email: firebaseEmail,
+      password,
+      displayName: name,
+      emailVerified: false,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? 'firebase createUser failed' }, { status: 400 });
+  }
 
   const now = new Date().toISOString();
   const user: User = {
-    id: newUserId(),
+    id: firebaseUser.uid,
     account_id: r.user.account_id,
     type: 'iam',
-    username: username.toLowerCase(),
+    username: lowerName,
+    firebase_email: firebaseEmail,
     name,
-    password_hash: await hashPassword(password),
     role: role as Role,
     created_at: now,
     last_login: null,
   };
   await upsertUser(user);
+
+  await auth.setCustomUserClaims(firebaseUser.uid, {
+    role,
+    account_id: r.user.account_id,
+    type: 'iam',
+  });
 
   return NextResponse.json({ user: toPublicUser(user) });
 }

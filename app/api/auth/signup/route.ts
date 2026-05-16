@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server';
+import { getAdminAuth } from '@/lib/firebase-admin';
 import { getDefaultAccount, upsertAccount } from '@/lib/data/accounts';
-import { findUserByEmail, newUserId, upsertUser } from '@/lib/data/users';
-import { hashPassword } from '@/lib/auth/passwords';
-import { createSession, COOKIE_NAME, sessionCookieAttrs } from '@/lib/auth/sessions';
+import { findUserByEmail, upsertUser } from '@/lib/data/users';
 import type { Account, User } from '@/lib/auth/types';
 
 export const runtime = 'nodejs';
 
+/**
+ * Bootstrap the Lattice instance with a root account.
+ *
+ * Creates:
+ *  - a Firebase Auth user (so the client can sign in with email+password)
+ *  - a Firestore `accounts` doc
+ *  - a Firestore `users` doc whose id is the Firebase UID
+ *  - Firebase custom claims { role, account_id, type } on the auth user
+ *
+ * Only the first signup succeeds — subsequent ones get 409 because v1 is
+ * single-tenant. After signup the client immediately calls signInWithEmailAndPassword
+ * and then POSTs the resulting idToken to /api/auth/session.
+ */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { account_name, name, email, password } = body as Record<string, string>;
@@ -18,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'password must be at least 8 characters' }, { status: 400 });
   }
 
-  // For v1 we allow exactly ONE account/root in the system.
+  // v1 is single-tenant — exactly one Account / Root.
   const existing = await getDefaultAccount();
   if (existing) {
     return NextResponse.json({
@@ -26,38 +38,58 @@ export async function POST(req: Request) {
     }, { status: 409 });
   }
 
-  const dup = await findUserByEmail(email.toLowerCase());
+  const lowerEmail = email.toLowerCase();
+  const dup = await findUserByEmail(lowerEmail);
   if (dup) return NextResponse.json({ error: 'email already in use' }, { status: 409 });
+
+  const auth = getAdminAuth();
+  let firebaseUser;
+  try {
+    firebaseUser = await auth.createUser({
+      email: lowerEmail,
+      password,
+      displayName: name,
+      emailVerified: false,
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e?.message ?? 'firebase createUser failed' }, { status: 400 });
+  }
 
   const now = new Date().toISOString();
   const accountId = 'acc_' + Math.random().toString(36).slice(2, 10);
-  const userId = newUserId();
 
   const account: Account = {
     id: accountId,
     name: account_name,
-    root_user_id: userId,
+    root_user_id: firebaseUser.uid,
     created_at: now,
   };
 
   const user: User = {
-    id: userId,
+    id: firebaseUser.uid,
     account_id: accountId,
     type: 'root',
-    email: email.toLowerCase(),
+    email: lowerEmail,
+    firebase_email: lowerEmail,
     name,
-    password_hash: await hashPassword(password),
     role: 'root',
     created_at: now,
-    last_login: now,
+    last_login: null,
   };
 
   await upsertAccount(account);
   await upsertUser(user);
 
-  const session = await createSession(user.id, account.id);
+  // Custom claims propagate to Firebase ID tokens and Firestore security rules.
+  await auth.setCustomUserClaims(firebaseUser.uid, {
+    role: 'root',
+    account_id: accountId,
+    type: 'root',
+  });
 
-  const res = NextResponse.json({ ok: true, user: { id: user.id, email: user.email, role: user.role, name: user.name }, account: { id: account.id, name: account.name } });
-  res.headers.append('Set-Cookie', `${COOKIE_NAME}=${session.token}; ${sessionCookieAttrs()}`);
-  return res;
+  return NextResponse.json({
+    ok: true,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    account: { id: account.id, name: account.name },
+  });
 }

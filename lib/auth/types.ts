@@ -1,5 +1,6 @@
 // Auth identity model — AWS-style: 1 Account, 1 Root user, many IAM users.
 // Single-tenant for v1: the Lattice instance == the Account.
+// Backed by Firebase Auth: User.id is the Firebase UID.
 
 export type Role = 'root' | 'admin' | 'approver' | 'viewer';
 
@@ -8,30 +9,23 @@ export type UserType = 'root' | 'iam';
 export interface Account {
   id: string;
   name: string;             // e.g. "Cradle Catalyst"
-  root_user_id: string;
+  root_user_id: string;     // Firebase UID of the root user
   created_at: string;
 }
 
 export interface User {
-  id: string;
+  id: string;               // Firebase UID
   account_id: string;
   type: UserType;
-  // root: email is the login identity; iam: username is the login identity
+  // root: email is the real login identity
+  // iam:  username is the human-facing identifier; firebase_email holds the synthetic email
   email?: string;
   username?: string;
+  firebase_email: string;   // what Firebase Auth actually uses (real for root, synthetic for IAM)
   name: string;
-  password_hash: string;
   role: Role;
   created_at: string;
   last_login: string | null;
-}
-
-export interface Session {
-  token: string;            // random hex; primary key
-  user_id: string;
-  account_id: string;
-  created_at: string;
-  expires_at: string;
 }
 
 // Slim version of User safe to ship to the client.
@@ -48,6 +42,15 @@ export interface UserPublic {
 }
 
 export function toPublicUser(u: User): UserPublic {
-  const { password_hash, ...rest } = u;
-  return rest;
+  return {
+    id: u.id,
+    account_id: u.account_id,
+    type: u.type,
+    email: u.email,
+    username: u.username,
+    name: u.name,
+    role: u.role,
+    created_at: u.created_at,
+    last_login: u.last_login,
+  };
 }

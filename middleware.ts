@@ -5,10 +5,11 @@ import type { NextRequest } from 'next/server';
 const PUBLIC_PATHS = [
   '/sign-in',
   '/sign-up',
-  '/api/auth/signin',
   '/api/auth/signup',
+  '/api/auth/session',  // POST idToken → session cookie
   '/api/auth/signout',
-  '/api/auth/me',  // returns null user when not signed in
+  '/api/auth/me',       // returns null user when not signed in
+  '/api/auth/account',  // tells the sign-in form which account id to use
 ];
 
 const COOKIE_NAME = 'lattice_session';

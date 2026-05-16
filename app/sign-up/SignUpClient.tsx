@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { signInAsRoot } from '@/lib/auth/client-flow';
 
 export default function SignUpClient() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function SignUpClient() {
     setLoading(true);
     setError(null);
     try {
+      // Step 1: ask the server to create the Firebase Auth user + Firestore docs.
       const r = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -24,6 +26,11 @@ export default function SignUpClient() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error ?? 'sign-up failed');
+
+      // Step 2: actually sign in (client-side Firebase) so we get an idToken;
+      // then exchange that for a session cookie.
+      await signInAsRoot(email, password);
+
       router.push('/');
       router.refresh();
     } catch (e: any) {
@@ -65,7 +72,7 @@ export default function SignUpClient() {
             className="w-full p-2 bg-neutral-950 border border-neutral-800 rounded text-sm"
           />
         </Field>
-        <Field label="Root email" hint="this becomes the login identity for the root user">
+        <Field label="Root email" hint="this becomes the login identity for the root user (Firebase Auth)">
           <input
             type="email"
             value={email}
