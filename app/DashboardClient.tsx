@@ -37,164 +37,159 @@ export default function DashboardClient() {
 
   const pending = (stats?.pending_steward_actions ?? 0) + (stats?.pending_proposals ?? 0);
 
-  // Count-up animations for the stats strip. Snap to value after first
-  // animation, so subsequent polls don't re-animate.
-  const actorCount     = useCountUp(stats?.actors_total ?? 0);
-  const relCount       = useCountUp(stats?.relationships_active ?? 0);
-  const pendingCount   = useCountUp(pending);
-  const outcomesCount  = useCountUp(stats?.outcomes_total ?? 0);
+  const actorCount = useCountUp(stats?.actors_total ?? 0);
+  const relCount = useCountUp(stats?.relationships_active ?? 0);
+  const pendingCount = useCountUp(pending);
+  const outcomesCount = useCountUp(stats?.outcomes_total ?? 0);
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Persona context bar */}
-      <div className="mb-6 flex items-center gap-3 text-sm flex-wrap">
-        {user ? (
-          <div className={`px-3 py-1.5 rounded-full border font-medium ${
-            user.role === 'root' ? 'bg-amber-900/30 border-amber-800/60 text-amber-300'
-            : user.role === 'admin' ? 'bg-emerald-900/30 border-emerald-800/60 text-emerald-300'
-            : user.role === 'approver' ? 'bg-blue-900/30 border-blue-800/60 text-blue-300'
-            : 'bg-neutral-900 border-neutral-700 text-neutral-300'
-          }`}>
-            ◉ Signed in as: {user.name} · {user.role}{account ? ` @ ${account.name}` : ''}
+    <div className="max-w-7xl mx-auto">
+      {/* Page header — editorial */}
+      <header className="mb-12 md:mb-16 flex items-end justify-between flex-wrap gap-6">
+        <div>
+          <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
+            Dashboard / {account?.name ?? 'Lattice'}
           </div>
-        ) : (
-          <div className="px-3 py-1.5 rounded-full bg-neutral-900 border border-neutral-800 text-neutral-500">
-            Loading identity…
-          </div>
-        )}
-        <div className="text-neutral-500">
-          {new Date().toLocaleDateString('en-MY', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          <h1 className="font-sans font-bold text-4xl md:text-6xl lg:text-7xl leading-none tracking-tighter">
+            {user ? <>Good to see you,<br /><span className="text-muted-foreground">{user.name}.</span></> : <>Your<br /><span className="text-muted-foreground">ecosystem.</span></>}
+          </h1>
         </div>
-        {stats?.runtime && (
-          <div
-            className="px-2.5 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-400 font-mono"
-            title={`Chat: ${stats.runtime.gemini_chat_model} · Embeddings: ${stats.runtime.gemini_embed_model}`}
+        <div className="flex items-center gap-6 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span>{new Date().toLocaleDateString('en-MY', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+          {stats?.runtime && (
+            <span title={`Chat: ${stats.runtime.gemini_chat_model} · Embeddings: ${stats.runtime.gemini_embed_model}`}>
+              · <span className="text-foreground">{stats.runtime.gemini_chat_model}</span>
+            </span>
+          )}
+          <button
+            onClick={refresh}
+            className="text-muted-foreground hover:text-foreground transition-colors duration-150 underline underline-offset-4 decoration-1"
           >
-            ⚙ {stats.runtime.gemini_chat_model}
-          </div>
-        )}
-        <button
-          onClick={refresh}
-          className="ml-auto px-3 py-1 rounded text-xs bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-neutral-300"
-        >
-          ↻ Refresh
-        </button>
-      </div>
+            ↻ Refresh
+          </button>
+        </div>
+      </header>
 
-      {/* Stats strip */}
+      {/* Stat strip — poster numbers */}
       {stats ? (
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8 animate-fade-in">
-          <Stat
-            label="Actors managed"
-            value={actorCount}
-            hint={`${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners`}
-          />
-          <Stat
-            label="Active relationships"
-            value={relCount}
-            hint="each one is an AI Steward"
-          />
-          <Stat
-            label="Decisions awaiting you"
-            value={pendingCount}
-            hint={pending > 0 ? 'review them in the Inbox' : 'all caught up'}
-            accent={pending > 0 ? 'amber' : undefined}
-          />
-          <Stat
-            label="Outcomes captured"
-            value={outcomesCount}
-            hint="memory for future matching"
-          />
+        <section className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border mb-12 animate-fade-in">
+          <StatCell label="Actors" value={actorCount} hint={`${stats.actors_by_type.mentor} mentors · ${stats.actors_by_type.company} companies · ${stats.actors_by_type.programme} programmes · ${stats.actors_by_type.partner} partners`} />
+          <StatCell label="Active relationships" value={relCount} hint="each one is an AI Steward" />
+          <StatCell label="Awaiting decision" value={pendingCount} hint={pending > 0 ? 'review them in the inbox' : 'all caught up'} accent={pending > 0} />
+          <StatCell label="Outcomes captured" value={outcomesCount} hint="memory for future matching" />
         </section>
       ) : (
-        <SkeletonStats className="mb-8" />
+        <SkeletonStats className="mb-12" />
       )}
 
       {error && (
-        <div className="mb-8 p-3 rounded border border-rose-900 bg-rose-950/30 text-rose-300 text-sm">
-          {error} — have you run <code className="px-1 py-0.5 rounded bg-neutral-900">npm run seed</code> yet?
+        <div className="mb-12 border border-accent bg-accent/10 p-4 font-mono text-xs uppercase tracking-widest text-accent">
+          {error} — have you run npm run seed yet?
         </div>
       )}
 
-      {/* Recent activity */}
-      <section className="mb-8">
-        <div className="text-xs uppercase tracking-[0.2em] text-neutral-500 mb-3 font-medium">
-          Recent ecosystem activity
+      {/* Recent activity — editorial list */}
+      <section className="mb-16">
+        <div className="flex items-baseline justify-between border-b border-border pb-4 mb-0">
+          <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+            Recent ecosystem activity
+          </div>
+          <Link href="/audit" className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors duration-150">
+            Full audit log →
+          </Link>
         </div>
-        <div className="border border-neutral-800 rounded-lg divide-y divide-neutral-800">
-          {!stats && <div className="p-4 text-neutral-500 text-sm">Loading…</div>}
+        <div className="divide-y divide-border">
+          {!stats && (
+            <div className="py-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              Loading…
+            </div>
+          )}
           {stats && stats.recent_outcomes.length === 0 && (
-            <div className="p-4 text-neutral-500 text-sm">No outcomes yet. Approve a Steward action in the Inbox to populate this feed.</div>
+            <div className="py-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              No outcomes yet · approve a Steward action to populate this feed
+            </div>
           )}
           {stats?.recent_outcomes.map(o => (
             <Link
               key={o.id}
               href={`/relationships/${o.relationship_id}`}
-              className="block p-3 hover:bg-neutral-900/50 transition-colors"
+              className="block py-5 group hover:bg-muted transition-colors duration-150 -mx-4 px-4"
             >
-              <div className="flex items-center gap-3 text-xs text-neutral-500 mb-1">
+              <div className="flex items-center gap-5 font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
                 <span>{new Date(o.timestamp).toLocaleString('en-MY', { dateStyle: 'medium', timeStyle: 'short' })}</span>
-                <span className="text-emerald-400">{o.type}</span>
-                <span className="text-neutral-600">· in relationship {o.relationship_id}</span>
+                <span className="text-accent">{o.type}</span>
+                <span>in relationship {o.relationship_id}</span>
               </div>
-              <div className="text-sm">{o.evidence_text}</div>
+              <div className="font-sans text-base md:text-lg leading-snug">{o.evidence_text}</div>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* Quick actions */}
-      <section className="grid md:grid-cols-3 gap-3">
-        <ActionCard
-          title="See your ecosystem"
-          body="Force-directed graph. Every line is an autonomous Steward."
-          href="/graph"
-          color="emerald"
-        />
-        <ActionCard
-          title={`Review ${pending} AI proposal${pending === 1 ? '' : 's'}`}
-          body="Per-relationship Steward actions + Cartographer structural gaps awaiting your approval."
-          href="/inbox"
-          color="amber"
-          badge={pending > 0 ? String(pending) : undefined}
-        />
-        <ActionCard
-          title="Edit a relationship's policy"
-          body="Open any relationship from the graph. Change its escalation rules. Watch the next Steward tick reflect it."
-          href="/graph"
-          color="blue"
-        />
+      {/* Quick actions — editorial cards on bg-border gap */}
+      <section className="mb-16">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-6 border-b border-border pb-4">
+          Where next
+        </div>
+        <div className="grid md:grid-cols-3 gap-px bg-border">
+          <ActionCard n="01" title="See your ecosystem" body="Force-directed graph. Every line is an autonomous Steward." href="/graph" />
+          <ActionCard
+            n="02"
+            title={pending > 0 ? `Review ${pending} proposal${pending === 1 ? '' : 's'}` : 'Inbox is empty'}
+            body="Per-relationship Steward actions and Cartographer structural gaps awaiting your approval."
+            href="/inbox"
+            highlight={pending > 0}
+            badge={pending > 0 ? String(pending) : undefined}
+          />
+          <ActionCard n="03" title="Edit a policy" body="Open any relationship from the graph. Change its escalation rules. Watch the next Steward tick reflect it." href="/graph" />
+        </div>
       </section>
     </div>
   );
 }
 
-function Stat({ label, value, hint, accent }: { label: string; value: number | undefined; hint: string; accent?: 'amber' }) {
+function StatCell({ label, value, hint, accent }: { label: string; value: number; hint: string; accent?: boolean }) {
   return (
-    <div className={`border ${accent === 'amber' ? 'border-amber-800/60 bg-amber-950/10' : 'border-neutral-800 bg-neutral-900/30'} rounded-lg p-4`}>
-      <div className="text-xs uppercase tracking-wider text-neutral-500">{label}</div>
-      <div className={`text-3xl font-semibold mt-1 mb-1 ${accent === 'amber' ? 'text-amber-300' : ''}`}>
-        {value ?? '—'}
+    <div className={`p-6 md:p-8 ${accent ? 'bg-card' : 'bg-background'} relative`}>
+      {accent && <span className="absolute top-0 left-0 w-12 h-1 bg-accent" />}
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
+        {label}
       </div>
-      <div className="text-xs text-neutral-500">{hint}</div>
+      <div className={`font-sans font-bold text-5xl md:text-7xl leading-none tracking-tighter mb-4 ${accent ? 'text-accent' : 'text-foreground'}`}>
+        {value}
+      </div>
+      <div className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground leading-relaxed">
+        {hint}
+      </div>
     </div>
   );
 }
 
 function ActionCard({
-  title, body, href, color, badge,
-}: { title: string; body: string; href: string; color: 'emerald' | 'amber' | 'blue'; badge?: string }) {
-  const borderColor = color === 'emerald' ? 'border-emerald-800/60 hover:bg-emerald-950/20'
-                    : color === 'amber'   ? 'border-amber-800/60 hover:bg-amber-950/20'
-                    : 'border-blue-800/60 hover:bg-blue-950/20';
-  const badgeColor = color === 'emerald' ? 'bg-emerald-700' : color === 'amber' ? 'bg-amber-700' : 'bg-blue-700';
+  n, title, body, href, highlight, badge,
+}: { n: string; title: string; body: string; href: string; highlight?: boolean; badge?: string }) {
   return (
-    <Link href={href} className={`block border ${borderColor} rounded-lg p-4 transition-colors`}>
-      <div className="flex items-center justify-between mb-1">
-        <div className="font-semibold">{title}</div>
-        {badge && <span className={`text-xs px-2 py-0.5 rounded-full text-white ${badgeColor}`}>{badge}</span>}
+    <Link
+      href={href}
+      className={`relative block p-6 md:p-8 ${highlight ? 'bg-card hover:bg-muted' : 'bg-background hover:bg-muted'} transition-colors duration-150 group`}
+    >
+      {highlight && <span className="absolute top-0 left-0 w-12 h-1 bg-accent" />}
+      <div className="flex items-baseline justify-between mb-6">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {n}
+        </div>
+        {badge && (
+          <span className="font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 bg-accent text-accent-foreground font-bold">
+            {badge}
+          </span>
+        )}
       </div>
-      <div className="text-sm text-neutral-400 leading-relaxed">{body}</div>
+      <h3 className="font-sans font-bold text-xl md:text-2xl leading-tight tracking-tight mb-4 group-hover:text-accent transition-colors duration-150">
+        {title} →
+      </h3>
+      <p className="font-sans text-sm md:text-base text-muted-foreground leading-relaxed">
+        {body}
+      </p>
     </Link>
   );
 }
