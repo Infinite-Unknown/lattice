@@ -18,8 +18,11 @@ export default function RelationshipClient({ id }: { id: string }) {
   const [sunset, setSunset] = useState('');
   const [tab, setTab] = useState<'timeline' | 'steward' | 'policy'>('timeline');
 
+  const [notFound, setNotFound] = useState(false);
+
   async function refresh() {
     const r = await fetch(`/api/relationships/${id}`, { cache: 'no-store' });
+    if (r.status === 404) { setNotFound(true); return; }
     const d: Data = await r.json();
     setData(d);
     setEscalation(d.relationship.escalation_policy);
@@ -37,6 +40,13 @@ export default function RelationshipClient({ id }: { id: string }) {
     refresh();
   }
 
+  if (notFound) return (
+    <div className="text-neutral-400 max-w-xl">
+      <h1 className="text-2xl font-semibold mb-2 text-neutral-100">Not a real relationship yet</h1>
+      <p>This edge is a Cartographer <span className="text-amber-400">proposal</span> — it doesn&apos;t exist as an active relationship until approved.</p>
+      <p className="mt-2">Head to <a href="/inbox" className="text-emerald-400 underline">Inbox → Cartographer</a> to approve it.</p>
+    </div>
+  );
   if (!data) return <div className="text-neutral-500">Loading…</div>;
 
   return (
