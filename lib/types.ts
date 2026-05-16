@@ -10,6 +10,7 @@ export type StewardAction =
 
 export interface Actor {
   id: string;
+  account_id: string;
   type: ActorType;
   name: string;
   profile: Record<string, string | string[] | number>;
@@ -22,6 +23,7 @@ export interface Actor {
 
 export interface Outcome {
   id: string;
+  account_id: string;
   relationship_id: string;
   type: OutcomeType;
   evidence_text: string;
@@ -47,6 +49,7 @@ export interface StewardLogEntry {
 
 export interface Relationship {
   id: string;
+  account_id: string;
   type: RelationshipType;
   parties: string[];
   state: RelationshipState;
@@ -63,6 +66,7 @@ export interface Relationship {
 
 export interface ProposedRelationship {
   id: string;
+  account_id: string;
   type: RelationshipType;
   candidate_parties: string[];
   gap_type: GapType;

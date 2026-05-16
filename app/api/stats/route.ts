@@ -2,30 +2,31 @@ import { NextResponse } from 'next/server';
 import { listActors } from '@/lib/data/actors';
 import { listRelationships } from '@/lib/data/relationships';
 import { listOpenProposals } from '@/lib/data/proposals';
+import { listAllOutcomes } from '@/lib/data/outcomes';
 import { listTodosForAccount } from '@/lib/data/todos';
-import { getCurrentUser } from '@/lib/auth/current-user';
-import { getAdminDb } from '@/lib/firebase-admin';
+import { requireUser } from '@/lib/auth/current-user';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  // We don't *require* a user here — /api/stats is read-by-everyone-signed-in
-  // and the existing middleware already gates this route. But we need the
-  // account id to scope todos correctly.
-  const user = await getCurrentUser();
-  const [actors, rels, props, outSnap, todos] = await Promise.all([
-    listActors(),
-    listRelationships(),
-    listOpenProposals(),
-    getAdminDb().collection('outcomes').get(),
-    user ? listTodosForAccount(user.account_id) : Promise.resolve([]),
+  // /api/stats is read-by-anyone-signed-in but we need the account id to
+  // scope every list — otherwise a new tenant inherits the previous one's
+  // stat strip.
+  const auth = await requireUser(['graph.read']);
+  if ('error' in auth) return auth.error;
+  const accountId = auth.user.account_id;
+
+  const [actors, rels, props, outcomes, todos] = await Promise.all([
+    listActors(accountId),
+    listRelationships(accountId),
+    listOpenProposals(accountId),
+    listAllOutcomes(accountId),
+    listTodosForAccount(accountId),
   ]);
 
-  // Mirror the inbox's filter exactly — pending = neither approved nor
+  // Mirror the inbox filter exactly — pending = neither approved nor
   // dismissed AND not a 'hold' (holds aren't user-actionable).
-  // Without the dismissed check, the nav badge over-counted because it
-  // included rejected entries that no longer appear in the inbox itself.
   const pendingSteward = rels.reduce(
     (acc, r) => acc + r.steward_log.filter(e => !e.approved && !e.dismissed && e.action !== 'hold').length,
     0,
@@ -41,10 +42,17 @@ export async function GET() {
   const activeRelationships = rels.filter(r => r.state === 'active').length;
 
   // Recent activity: last 5 outcomes by timestamp
-  const outcomes = outSnap.docs.map(d => d.data() as { id: string; timestamp: string; type: string; evidence_text: string; relationship_id: string });
   const recentOutcomes = outcomes
+    .slice()
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-    .slice(0, 5);
+    .slice(0, 5)
+    .map(o => ({
+      id: o.id,
+      timestamp: o.timestamp,
+      type: o.type,
+      evidence_text: o.evidence_text,
+      relationship_id: o.relationship_id,
+    }));
 
   const openTodos = todos.filter(t => t.status === 'open').length;
 
@@ -55,11 +63,9 @@ export async function GET() {
     relationships_total: rels.length,
     pending_proposals: props.length,
     pending_steward_actions: pendingSteward,
-    outcomes_total: outSnap.size,
+    outcomes_total: outcomes.length,
     open_todos: openTodos,
     recent_outcomes: recentOutcomes,
-    // Runtime info — handy for governance + judges. Surfaces the actual
-    // model identifier the Steward / Cartographer are calling right now.
     runtime: {
       gemini_chat_model: process.env.GEMINI_MODEL ?? 'gemini-2.5-pro',
       gemini_embed_model: process.env.GEMINI_EMBED_MODEL ?? 'gemini-embedding-001',

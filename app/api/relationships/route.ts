@@ -42,14 +42,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'parties must be distinct' }, { status: 400 });
   }
 
-  const [a1, a2] = await Promise.all([getActor(parties[0] as string), getActor(parties[1] as string)]);
+  const accountId = auth.user.account_id;
+  const [a1, a2] = await Promise.all([
+    getActor(parties[0] as string, accountId),
+    getActor(parties[1] as string, accountId),
+  ]);
   if (!a1 || !a2) {
-    return NextResponse.json({ error: 'one or both parties do not exist' }, { status: 400 });
+    return NextResponse.json({ error: 'one or both parties do not exist in this account' }, { status: 400 });
   }
 
   const now = new Date().toISOString();
   const rel: Relationship = {
     id: `r_${Math.random().toString(36).slice(2, 8)}`,
+    account_id: accountId,
     type: type as RelationshipType,
     parties: [a1.id, a2.id],
     state: 'active',

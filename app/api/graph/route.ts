@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireUser } from '@/lib/auth/current-user';
 import { listActors } from '@/lib/data/actors';
 import { listRelationships } from '@/lib/data/relationships';
 import { listOpenProposals } from '@/lib/data/proposals';
@@ -7,7 +8,15 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const [actors, rels, proposals] = await Promise.all([listActors(), listRelationships(), listOpenProposals()]);
+  const auth = await requireUser(['graph.read']);
+  if ('error' in auth) return auth.error;
+  const accountId = auth.user.account_id;
+
+  const [actors, rels, proposals] = await Promise.all([
+    listActors(accountId),
+    listRelationships(accountId),
+    listOpenProposals(accountId),
+  ]);
   const nameOf = new Map(actors.map(a => [a.id, a.name]));
   const nodes = actors.map(a => ({ id: a.id, name: a.name, type: a.type }));
 

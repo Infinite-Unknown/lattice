@@ -65,6 +65,7 @@ export async function POST(req: Request) {
   const auth = await requireUser(['approve.write']);
   if ('error' in auth) return auth.error;
   const user = auth.user;
+  const accountId = user.account_id;
 
   const body = await req.json().catch(() => ({}));
   const kind = (body as { kind?: string }).kind;
@@ -72,7 +73,7 @@ export async function POST(req: Request) {
 
   // ---------------- Steward log: approve ----------------
   if (kind === 'steward-log') {
-    const r = await getRelationship(body.relationshipId);
+    const r = await getRelationship(body.relationshipId, accountId);
     if (!r) return NextResponse.json({ error: 'relationship not found' }, { status: 404 });
     const entry = r.steward_log.find(e => e.timestamp === body.timestamp);
     if (!entry) return NextResponse.json({ error: 'log entry not found' }, { status: 404 });
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
     const outcomeId = `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     await upsertOutcome({
       id: outcomeId,
+      account_id: accountId,
       relationship_id: r.id,
       type: ACTION_TO_OUTCOME_TYPE(entry.action),
       evidence_text: `Approved Steward action: ${entry.action}. ${entry.reasoning} (approved by ${user.name})`,
@@ -106,6 +108,7 @@ export async function POST(req: Request) {
     if (stateChanged) {
       await upsertOutcome({
         id: `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        account_id: accountId,
         relationship_id: r.id,
         type: newState === 'closed' ? 'closing_note' : 'milestone',
         evidence_text: `Auto state transition: ${prevState} → ${newState} (triggered by approved Steward action: ${entry.action})`,
@@ -125,7 +128,7 @@ export async function POST(req: Request) {
     // state transition or no-op IS the outcome.
     let createdTodoId: string | null = null;
     if (ACTIONS_THAT_NEED_TODOS.includes(entry.action)) {
-      const allActors = await listActors();
+      const allActors = await listActors(accountId);
       const nameOf = new Map(allActors.map(a => [a.id, a.name]));
       const partyNames = r.parties.map(p => nameOf.get(p) ?? p);
 
@@ -167,7 +170,7 @@ export async function POST(req: Request) {
 
   // ---------------- Steward log: dismiss ----------------
   if (kind === 'dismiss-steward') {
-    const r = await getRelationship(body.relationshipId);
+    const r = await getRelationship(body.relationshipId, accountId);
     if (!r) return NextResponse.json({ error: 'relationship not found' }, { status: 404 });
     const entry = r.steward_log.find(e => e.timestamp === body.timestamp);
     if (!entry) return NextResponse.json({ error: 'log entry not found' }, { status: 404 });
@@ -194,14 +197,14 @@ export async function POST(req: Request) {
   // names two existing actors. Otherwise gracefully fall back to "recruited"
   // and tell the client why.
   if (kind === 'proposal') {
-    const proposal = await getProposal(body.proposalId);
+    const proposal = await getProposal(body.proposalId, accountId);
     if (!proposal) return NextResponse.json({ error: 'proposal not found' }, { status: 404 });
     if (proposal.status !== 'open') {
       return NextResponse.json({ error: `proposal already ${proposal.status}` }, { status: 409 });
     }
 
     // Resolve candidate IDs to actor records.
-    const resolved = (await Promise.all(proposal.candidate_parties.map(getActor)))
+    const resolved = (await Promise.all(proposal.candidate_parties.map(id => getActor(id, accountId))))
       .filter((a): a is Actor => a !== null);
 
     let materializedRelationshipId: string | null = null;
@@ -212,7 +215,7 @@ export async function POST(req: Request) {
       materializedMessage = `Marked as recruited — the proposal references ${resolved.length} existing actor(s), need 2 to form a relationship. Form it manually from the Graph page.`;
     } else {
       const [a1, a2] = pair;
-      const existing = await findActiveRelationshipBetween(a1.id, a2.id);
+      const existing = await findActiveRelationshipBetween(accountId, a1.id, a2.id);
       if (existing) {
         materializedMessage = `Marked as recruited — ${a1.name} and ${a2.name} already have an active ${existing.type} relationship (${existing.id}). No duplicate created.`;
       } else {
@@ -222,6 +225,7 @@ export async function POST(req: Request) {
         const cadence = (proposal.proposed_cadence?.trim() || defaultCadenceFor(inferredType));
         const newRel: Relationship = {
           id: `r_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+          account_id: accountId,
           type: inferredType,
           parties: [a1.id, a2.id],
           state: 'active',
@@ -243,6 +247,7 @@ export async function POST(req: Request) {
         // Audit outcome on the new relationship so its timeline starts with provenance.
         await upsertOutcome({
           id: `o_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          account_id: accountId,
           relationship_id: newRel.id,
           type: 'milestone',
           evidence_text: `Relationship created from Cartographer proposal ${proposal.id} (gap: ${proposal.gap_type}). Reasoning: ${proposal.reasoning}`,
