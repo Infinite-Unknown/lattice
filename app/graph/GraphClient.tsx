@@ -41,21 +41,33 @@ const TYPE_COLORS: Record<string, string> = {
   service_engagement:     '#60a5fa', // blue   — service provider engagement
 };
 
-// Edge style overrides by state
+// Edge style overrides by state.
+//
+// Visual grammar (so each state reads instantly even at zoom-out):
+//   active     — solid, full type-colour, flowing particles → 'healthy'
+//   proposed   — AMBER overlay (regardless of type) + long dash + slow particle
+//                → 'awaiting decision' (same amber as Cartographer chips in the inbox)
+//   escalated  — solid RED + thick + fast particles → 'unmissable'
+//   tapered    — type colour at ~30% opacity, DOTTED [1,4] pattern, no particles
+//                → 'winding down'; very different from proposed (long-dash + amber)
+//   closed     — grey ghost line, very faded → 'kept for memory'
 function edgeStyle(link: GraphLink): { color: string; dash: number[] | null; width: number; particles: number } {
   const base = TYPE_COLORS[link.type] ?? '#94a3b8';
   switch (link.state) {
     case 'active':
       return { color: base, dash: null, width: 1.6, particles: 2 };
     case 'proposed':
-      return { color: base, dash: [6, 4], width: 1.2, particles: 0 };
+      // Always amber so it reads as 'needs decision' regardless of type — same
+      // signal language as the amber Cartographer chips in /inbox.
+      return { color: '#f59e0b', dash: [8, 4], width: 1.6, particles: 1 };
     case 'escalated':
-      // Override to red — escalation should be visually unmissable
-      return { color: '#ef4444', dash: null, width: 2.4, particles: 3 };
+      return { color: '#ef4444', dash: null, width: 2.6, particles: 3 };
     case 'tapered':
-      return { color: base + '66', dash: [2, 3], width: 1, particles: 0 }; // 40% opacity
+      // Dotted (1px on / 4px off) is structurally different from the long
+      // dash used by 'proposed' — at any zoom level they don't collide.
+      return { color: base + '4d', dash: [1, 4], width: 1, particles: 0 };
     case 'closed':
-      return { color: '#52525266', dash: null, width: 0.8, particles: 0 };
+      return { color: '#52525250', dash: null, width: 0.7, particles: 0 };
     default:
       return { color: base, dash: null, width: 1.4, particles: 0 };
   }
@@ -221,6 +233,13 @@ export default function GraphClient() {
           onNodeClick={(n: any) => setSelectedNodeId(n.id)}
           onBackgroundClick={() => setSelectedNodeId(null)}
           backgroundColor="#0a0a0a"
+          // Settle physics after a finite number of simulation ticks so the
+          // graph isn't perpetually drifting. Dragging a node naturally
+          // re-heats the simulation when needed.
+          cooldownTicks={200}
+          // When the initial layout finishes, auto-fit the view so nodes
+          // never start off-screen.
+          onEngineStop={() => fgRef.current?.zoomToFit?.(400, 60)}
         />
 
         {/* Hover tooltip */}
@@ -248,6 +267,31 @@ export default function GraphClient() {
             <div className="text-neutral-600 mt-2 italic">Click to open detail →</div>
           </div>
         )}
+
+        {/* View controls — fit the camera back to all nodes, or re-run the
+            force layout from scratch if nodes have drifted into a tangle. */}
+        <div className="absolute top-3 left-3 flex gap-1.5 z-10">
+          <button
+            onClick={() => fgRef.current?.zoomToFit?.(400, 60)}
+            title="Fit all nodes in view"
+            className="px-2 py-1 rounded bg-neutral-900/80 hover:bg-neutral-800 backdrop-blur border border-neutral-700 text-xs text-neutral-200 flex items-center gap-1.5"
+          >
+            ⛶ Fit view
+          </button>
+          <button
+            onClick={() => {
+              if (!fgRef.current) return;
+              // Reheat the simulation so nodes re-find equilibrium positions,
+              // then fit the camera after a beat once they've moved.
+              fgRef.current.d3ReheatSimulation?.();
+              setTimeout(() => fgRef.current?.zoomToFit?.(400, 60), 800);
+            }}
+            title="Re-run layout — useful if nodes have drifted into a tangle"
+            className="px-2 py-1 rounded bg-neutral-900/80 hover:bg-neutral-800 backdrop-blur border border-neutral-700 text-xs text-neutral-200 flex items-center gap-1.5"
+          >
+            ⟲ Reset layout
+          </button>
+        </div>
       </div>
 
       {/* Comprehensive legend panel */}
@@ -281,10 +325,10 @@ export default function GraphClient() {
             <div className="text-neutral-300 font-medium mb-2">Lifecycle state (edge style)</div>
             <div className="space-y-1.5">
               <LegendState style="solid" color="#34d399" label="Active" hint="Steward is running" />
-              <LegendState style="dashed" color="#34d399" label="Proposed" hint="Cartographer suggestion, not yet approved" />
-              <LegendState style="solid" color="#ef4444" label="Escalated" hint="policy trigger fired, needs admin" />
-              <LegendState style="dashed" color="#34d39966" label="Tapered" hint="winding down" />
-              <LegendState style="solid" color="#52525266" label="Closed" hint="sunset, kept for memory" />
+              <LegendState style="long-dash" color="#f59e0b" label="Proposed" hint="amber + long dash · awaiting your approval" />
+              <LegendState style="solid" color="#ef4444" label="Escalated" hint="thick red · policy trigger fired" />
+              <LegendState style="dotted" color="#34d3994d" label="Tapered" hint="faded dots · winding down" />
+              <LegendState style="solid" color="#52525250" label="Closed" hint="ghost line · sunset, kept for memory" />
             </div>
           </div>
         </div>
@@ -317,15 +361,21 @@ function LegendEdge({ color, label, hint }: { color: string; label: string; hint
   );
 }
 
-function LegendState({ style, color, label, hint }: { style: 'solid' | 'dashed'; color: string; label: string; hint: string }) {
+function LegendState({ style, color, label, hint }: { style: 'solid' | 'long-dash' | 'dotted'; color: string; label: string; hint: string }) {
+  const dasharray =
+    style === 'long-dash' ? '8 4'
+    : style === 'dotted' ? '1 4'
+    : undefined;
+  const strokeWidth = style === 'dotted' ? 2 : 2.2;
   return (
     <div className="flex items-center gap-2">
-      <svg width="24" height="6" className="flex-shrink-0">
+      <svg width="28" height="6" className="flex-shrink-0">
         <line
-          x1="0" y1="3" x2="24" y2="3"
+          x1="0" y1="3" x2="28" y2="3"
           stroke={color}
-          strokeWidth="2"
-          strokeDasharray={style === 'dashed' ? '4 3' : undefined}
+          strokeWidth={strokeWidth}
+          strokeDasharray={dasharray}
+          strokeLinecap={style === 'dotted' ? 'round' : 'butt'}
         />
       </svg>
       <span className="text-neutral-200">{label}</span>
