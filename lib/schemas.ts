@@ -21,6 +21,12 @@ export const CartographerGapSchema = z.object({
   citations: z.array(z.string().regex(/^(outcome|profile|actor|metric):.+/)).min(1),
   expected_impact: z.string().min(1),
   confidence: z.number().min(0).max(1),
+  // Production auto-materialisation: the model commits to the SHAPE of
+  // the relationship it's proposing — focus tags + cadence — so when an
+  // admin approves we can stand up the new relationship fully wired
+  // without making them fill in defaults manually.
+  proposed_focus: z.array(z.string()).optional(),
+  proposed_cadence: z.string().optional(),
 });
 export type CartographerGapParsed = z.infer<typeof CartographerGapSchema>;
 

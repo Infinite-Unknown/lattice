@@ -72,6 +72,10 @@ export interface ProposedRelationship {
   confidence: number;
   status: 'open' | 'recruited' | 'dismissed';
   created_at: string;
+  // Model-suggested shape — used at approval time to wire up the new
+  // relationship without admin needing to set them by hand.
+  proposed_focus?: string[];
+  proposed_cadence?: string;
   // When approval materialises this proposal into an actual Relationship,
   // we link the two together so the audit trail is complete.
   linked_relationship_id?: string;
@@ -91,4 +95,6 @@ export interface CartographerGap {
   citations: string[];
   expected_impact: string;
   confidence: number;
+  proposed_focus?: string[];
+  proposed_cadence?: string;
 }

@@ -160,13 +160,16 @@ export async function POST(req: Request) {
         materializedMessage = `Marked as recruited — ${a1.name} and ${a2.name} already have an active ${existing.type} relationship (${existing.id}). No duplicate created.`;
       } else {
         const inferredType = inferRelationshipType(a1.type, a2.type);
+        // Prefer the model's committed shape; fall back to type-based defaults.
+        const focus = (proposal.proposed_focus ?? []).map(s => String(s).trim()).filter(Boolean);
+        const cadence = (proposal.proposed_cadence?.trim() || defaultCadenceFor(inferredType));
         const newRel: Relationship = {
           id: `r_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
           type: inferredType,
           parties: [a1.id, a2.id],
           state: 'active',
-          focus: [],            // admin can fill in via relationship detail
-          cadence: defaultCadenceFor(inferredType),
+          focus,
+          cadence,
           escalation_policy: DEFAULT_ESCALATION,
           sunset_policy: DEFAULT_SUNSET,
           steward_state: {
@@ -192,28 +195,52 @@ export async function POST(req: Request) {
         });
 
         materializedRelationshipId = newRel.id;
-        materializedMessage = `Created ${inferredType} between ${a1.name} ↔ ${a2.name} (${newRel.id}).`;
+        materializedMessage = `Created ${inferredType} between ${a1.name} ↔ ${a2.name}.`;
 
         await writeAuditEntry(
           user, 'create_relationship', 'relationship', newRel.id,
           `Materialised proposal ${proposal.id} → ${inferredType} between ${a1.name} and ${a2.name}`,
         );
+
+        await setProposalRecruited(proposal.id, materializedRelationshipId);
+        await writeAuditEntry(
+          user, 'approve_proposal', 'proposal', proposal.id,
+          `Approved proposal ${proposal.id} → materialised relationship ${materializedRelationshipId}`,
+        );
+
+        // Return the full picture so the modal can show what got auto-set
+        // (focus tags, cadence, type, parties) without any further work
+        // from the admin.
+        return NextResponse.json({
+          ok: true,
+          materialized: true,
+          relationshipId: newRel.id,
+          message: materializedMessage,
+          relationship: {
+            id: newRel.id,
+            type: newRel.type,
+            cadence: newRel.cadence,
+            focus: newRel.focus,
+            parties: [
+              { id: a1.id, name: a1.name, type: a1.type },
+              { id: a2.id, name: a2.name, type: a2.type },
+            ],
+          },
+        });
       }
     }
 
+    // Non-materialising path (duplicate or <2 candidates) — still mark recruited.
     await setProposalRecruited(proposal.id, materializedRelationshipId ?? undefined);
-
     await writeAuditEntry(
       user, 'approve_proposal', 'proposal', proposal.id,
-      materializedRelationshipId
-        ? `Approved proposal ${proposal.id} → materialised relationship ${materializedRelationshipId}`
-        : `Approved proposal ${proposal.id} → no relationship materialised (${materializedMessage})`,
+      `Approved proposal ${proposal.id} → no relationship materialised (${materializedMessage})`,
     );
 
     return NextResponse.json({
       ok: true,
-      materialized: !!materializedRelationshipId,
-      relationshipId: materializedRelationshipId,
+      materialized: false,
+      relationshipId: null,
       message: materializedMessage,
     });
   }

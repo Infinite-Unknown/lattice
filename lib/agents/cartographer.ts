@@ -23,8 +23,13 @@ const RESPONSE_SCHEMA = {
       citations: { type: 'array', items: { type: 'string' } },
       expected_impact: { type: 'string' },
       confidence: { type: 'number' },
+      // The model also commits to the shape of the proposed relationship:
+      // 2-4 focus tags + a cadence string. Used at approval time to fully
+      // wire up the new relationship.
+      proposed_focus: { type: 'array', items: { type: 'string' } },
+      proposed_cadence: { type: 'string' },
     },
-    required: ['gap_type','candidate_parties','reasoning','citations','expected_impact','confidence'],
+    required: ['gap_type','candidate_parties','reasoning','citations','expected_impact','confidence','proposed_focus','proposed_cadence'],
   },
 };
 
@@ -94,6 +99,8 @@ Return a JSON array of gaps. Each gap must:
 - include reasoning that cites at least one actor:<id> or metric:<name>
 - estimate expected_impact in one sentence
 - include a confidence score in [0,1]
+- propose 2-4 short lowercase focus tags (proposed_focus) that the resulting relationship should pursue, e.g. ['fintech', 'fundraising']
+- propose a cadence string (proposed_cadence): one of 'weekly', 'bi-weekly', 'monthly', 'quarterly', or 'as-needed'
 
 Valid metric names: capacity_utilization, expertise_coverage, dormancy_days, unmet_expertise_demand.
 Only cite actor IDs that appear in the summary.
@@ -123,6 +130,8 @@ Surface at most 5 gaps. Prioritise the most actionable AND novel ones.`;
       confidence: g.confidence,
       status: 'open',
       created_at: new Date().toISOString(),
+      proposed_focus: g.proposed_focus,
+      proposed_cadence: g.proposed_cadence,
     };
     await upsertProposal(p);
     proposals.push(p);

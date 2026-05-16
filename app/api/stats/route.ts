@@ -15,8 +15,12 @@ export async function GET() {
     getAdminDb().collection('outcomes').get(),
   ]);
 
+  // Mirror the inbox's filter exactly — pending = neither approved nor
+  // dismissed AND not a 'hold' (holds aren't user-actionable).
+  // Without the dismissed check, the nav badge over-counted because it
+  // included rejected entries that no longer appear in the inbox itself.
   const pendingSteward = rels.reduce(
-    (acc, r) => acc + r.steward_log.filter(e => !e.approved && e.action !== 'hold').length,
+    (acc, r) => acc + r.steward_log.filter(e => !e.approved && !e.dismissed && e.action !== 'hold').length,
     0,
   );
 

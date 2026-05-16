@@ -114,7 +114,6 @@ export default function InboxClient() {
       const j = await res.json().catch(() => ({}));
       if (decision === 'approve' && res.ok) {
         // Persistent modal — stays open until the user closes it.
-        // We compute the remaining count from current state minus this one.
         setApprovalResult({
           proposal: {
             proposalId: proposal.proposalId,
@@ -128,6 +127,7 @@ export default function InboxClient() {
             materialized: !!j.materialized,
             relationshipId: j.relationshipId ?? null,
             message: j.message ?? 'Proposal approved.',
+            relationship: j.relationship, // model-suggested focus/cadence + parties
           },
           remainingProposals: Math.max(0, (data?.gaps.length ?? 1) - 1),
         });
