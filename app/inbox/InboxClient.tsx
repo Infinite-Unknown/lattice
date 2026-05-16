@@ -11,9 +11,9 @@ type InboxData = {
   pendingActions: Array<{
     kind: 'steward';
     relationshipId: string; relationshipLabel: string; timestamp: string;
-    action: string;            // raw — used in API calls + auto-transition checks
-    reasoning: string;         // rewritten for readability
-    citations: ChipCitation[]; // resolved chip data
+    action: string;
+    reasoning: string;
+    citations: ChipCitation[];
     confidence: number;
   }>;
   gaps: Array<{
@@ -38,7 +38,6 @@ export default function InboxClient() {
   const [toast, setToast] = useState<{ kind: 'success' | 'info' | 'error'; message: string; href?: string } | null>(null);
   const [approvalResult, setApprovalResult] = useState<ApprovalResult | null>(null);
 
-  // Auto-dismiss toast after a few seconds.
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 6000);
@@ -107,12 +106,10 @@ export default function InboxClient() {
       } else if (decision === 'dismiss') {
         setToast({
           kind: 'info',
-          message: `Dismissed “${humaniseLabel(action.action)}” for ${action.relationshipLabel}.`,
+          message: `Dismissed "${humaniseLabel(action.action)}" for ${action.relationshipLabel}.`,
         });
       } else {
-        // Approved — build a rich confirmation that names the action, the
-        // relationship, any auto state transition, and any spawned todo.
-        const bits: string[] = [`Approved “${humaniseLabel(action.action)}” for ${action.relationshipLabel}.`];
+        const bits: string[] = [`Approved "${humaniseLabel(action.action)}" for ${action.relationshipLabel}.`];
         if (j.stateChanged && j.newState) {
           bits.push(`State auto-transitioned to ${j.newState}.`);
         }
@@ -148,7 +145,6 @@ export default function InboxClient() {
       });
       const j = await res.json().catch(() => ({}));
       if (decision === 'approve' && res.ok) {
-        // Persistent modal — stays open until the user closes it.
         setApprovalResult({
           proposal: {
             proposalId: proposal.proposalId,
@@ -162,7 +158,7 @@ export default function InboxClient() {
             materialized: !!j.materialized,
             relationshipId: j.relationshipId ?? null,
             message: j.message ?? 'Proposal approved.',
-            relationship: j.relationship, // model-suggested focus/cadence + parties
+            relationship: j.relationship,
           },
           remainingProposals: Math.max(0, (data?.gaps.length ?? 1) - 1),
         });
@@ -177,171 +173,274 @@ export default function InboxClient() {
     }
   }
 
-  if (!data) return <SkeletonRows count={4} />;
-
   return (
-    <div>
-      <div className="flex gap-2 mb-4 flex-wrap">
-        <button onClick={() => setTab('steward')} className={`px-3 py-1.5 rounded ${tab === 'steward' ? 'bg-emerald-700' : 'bg-neutral-800'}`}>
-          Steward proposals ({data.pendingActions.length})
-        </button>
-        <button onClick={() => setTab('cartographer')} className={`px-3 py-1.5 rounded ${tab === 'cartographer' ? 'bg-amber-700' : 'bg-neutral-800'}`}>
-          Cartographer gaps ({data.gaps.length})
-        </button>
-        <div className="ml-auto flex gap-2">
-          <button
-            onClick={tickAll}
-            disabled={!canRun || tickingAll}
-            title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
-            className="px-3 py-1.5 rounded bg-emerald-900 hover:bg-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {tickingAll && <Spinner />}
-            {tickingAll ? 'Running Steward ticks…' : 'Run Steward tick'}
-          </button>
-          <button
-            onClick={scanGaps}
-            disabled={!canScan || scanning}
-            title={canScan ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks cartographer.run`}
-            className="px-3 py-1.5 rounded bg-amber-900 hover:bg-amber-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
-          >
-            {scanning && <Spinner />}
-            {scanning ? 'Scanning ecosystem…' : 'Run Cartographer scan'}
-          </button>
+    <div className="max-w-7xl mx-auto">
+      <header className="mb-10 md:mb-12 pb-8 border-b border-border">
+        <div className="font-mono text-xs uppercase tracking-widest text-accent mb-4">
+          Inbox / Decisions awaiting you
         </div>
-      </div>
-      {!canRun && !canApprove && (
-        <div className="mb-4 text-xs text-neutral-500 border border-neutral-800 rounded p-2">
-          ◉ You&apos;re signed in as <span className="text-neutral-300 font-medium">{user?.role}</span>. This is a read-only role — actions are disabled.
-        </div>
-      )}
+        <h1 className="font-sans font-bold text-4xl md:text-6xl leading-none tracking-tighter">
+          Approve.<br /><span className="text-muted-foreground">Or dismiss.</span>
+        </h1>
+      </header>
 
-      {toast && (
-        <div className={`mb-4 p-3 rounded border text-sm flex items-start justify-between gap-3 animate-fade-in ${
-          toast.kind === 'success' ? 'border-emerald-800/60 bg-emerald-950/30 text-emerald-200' :
-          toast.kind === 'error' ? 'border-rose-900 bg-rose-950/30 text-rose-200' :
-          'border-neutral-700 bg-neutral-900 text-neutral-200'
-        }`}>
-          <div className="flex-1">
-            {toast.message}
-            {toast.href && (
-              <> · <a href={toast.href} className="underline">{toast.href.startsWith('/todos') ? 'Open todo list →' : toast.href.startsWith('/relationships') ? 'Open relationship →' : 'Open →'}</a></>
-            )}
+      {!data && <SkeletonRows count={4} />}
+      {data && (
+        <>
+          {/* Tabs + run buttons */}
+          <div className="flex flex-wrap items-end justify-between gap-6 mb-8 pb-4 border-b border-border">
+            <div className="flex">
+              <TabButton active={tab === 'steward'} onClick={() => setTab('steward')}>
+                Steward
+                <span className="ml-2 text-foreground/70">/ {data.pendingActions.length}</span>
+              </TabButton>
+              <TabButton active={tab === 'cartographer'} onClick={() => setTab('cartographer')}>
+                Cartographer
+                <span className="ml-2 text-foreground/70">/ {data.gaps.length}</span>
+              </TabButton>
+            </div>
+            <div className="flex items-center gap-8">
+              <RunButton
+                onClick={tickAll}
+                disabled={!canRun || tickingAll}
+                title={canRun ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks steward.run`}
+                busy={tickingAll}
+              >
+                {tickingAll ? 'Running ticks…' : 'Run Steward tick →'}
+              </RunButton>
+              <RunButton
+                onClick={scanGaps}
+                disabled={!canScan || scanning}
+                title={canScan ? undefined : `Your role (${user?.role ?? 'unknown'}) lacks cartographer.run`}
+                busy={scanning}
+              >
+                {scanning ? 'Scanning ecosystem…' : 'Run Cartographer scan →'}
+              </RunButton>
+            </div>
           </div>
-          <button onClick={() => setToast(null)} className="text-neutral-500 hover:text-neutral-200" aria-label="Dismiss">×</button>
-        </div>
-      )}
 
-      {tab === 'steward' && (
-        <div className="space-y-3">
-          {data.pendingActions.length === 0 && <p className="text-neutral-500 text-sm">No pending Steward actions. Click &quot;Run Steward tick&quot; to generate some.</p>}
-          {data.pendingActions.map(a => {
-            const approveKey = `s:${a.relationshipId}:${a.timestamp}:approve`;
-            const dismissKey = `s:${a.relationshipId}:${a.timestamp}:dismiss`;
-            const approveBusy = busyId === approveKey;
-            const dismissBusy = busyId === dismissKey;
-            return (
-              <div key={a.timestamp + a.relationshipId} className="border border-neutral-800 rounded p-4">
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <div className="font-medium">{a.relationshipLabel}</div>
-                    <div className="text-xs text-neutral-400 mt-0.5 flex items-center gap-2 flex-wrap">
-                      <span className="px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-[11px] font-medium">
-                        {humaniseLabel(a.action)}
-                      </span>
-                      <span>confidence {a.confidence.toFixed(2)}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => decideSteward(a, 'dismiss')}
-                      disabled={!canApprove || !!busyId}
-                      title={canApprove ? 'Dismiss this proposal' : `Your role (${user?.role}) lacks approve.write`}
-                      className="px-3 py-1 rounded border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
-                    >
-                      {dismissBusy && <Spinner />}
-                      Dismiss
-                    </button>
-                    <button
-                      onClick={() => decideSteward(a, 'approve')}
-                      disabled={!canApprove || !!busyId}
-                      title={canApprove ? 'Approve — auto-transitions state for taper/sunset/escalate' : `Your role (${user?.role}) lacks approve.write`}
-                      className="px-3 py-1 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
-                    >
-                      {approveBusy && <Spinner />}
-                      Approve
-                    </button>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm leading-relaxed">{a.reasoning}</p>
-                <CitationChipList citations={a.citations} />
-                {(a.action === 'taper' || a.action === 'sunset' || a.action === 'escalate') && (
-                  <div className="mt-3 text-xs text-amber-400">
-                    ⚠ Approving will auto-transition state to <span className="font-medium">{a.action === 'taper' ? 'tapered' : a.action === 'sunset' ? 'closed' : 'escalated'}</span>.
-                  </div>
+          {!canRun && !canApprove && (
+            <div className="mb-6 border border-border bg-card p-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+              Read-only role · <span className="text-foreground">{user?.role}</span> · actions disabled
+            </div>
+          )}
+
+          {toast && (
+            <div
+              className={`mb-6 p-4 border flex items-start justify-between gap-3 animate-fade-in ${
+                toast.kind === 'success' ? 'border-accent bg-accent/10' :
+                toast.kind === 'error' ? 'border-accent bg-accent/10' :
+                'border-border bg-card'
+              }`}
+            >
+              <div className="flex-1 font-sans text-sm">
+                <span className={toast.kind === 'success' || toast.kind === 'error' ? 'text-accent' : 'text-foreground'}>
+                  {toast.message}
+                </span>
+                {toast.href && (
+                  <> · <a href={toast.href} className="underline underline-offset-4 decoration-1 hover:text-accent transition-colors duration-150">
+                    {toast.href.startsWith('/todos') ? 'Open todo list →' : toast.href.startsWith('/relationships') ? 'Open relationship →' : 'Open →'}
+                  </a></>
                 )}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <button onClick={() => setToast(null)} className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors" aria-label="Dismiss">
+                Close
+              </button>
+            </div>
+          )}
 
-      {tab === 'cartographer' && (
-        <div className="space-y-3">
-          {data.gaps.length === 0 && <p className="text-neutral-500 text-sm">No open gaps. Click &quot;Run Cartographer scan&quot; to find some.</p>}
-          {data.gaps.map(g => {
-            const approveKey = `p:${g.proposalId}:approve`;
-            const dismissKey = `p:${g.proposalId}:dismiss`;
-            const approveBusy = busyId === approveKey;
-            const dismissBusy = busyId === dismissKey;
-            return (
-              <div key={g.proposalId} className="border border-neutral-800 rounded p-4">
-                <div className="flex justify-between gap-3">
-                  <div>
-                    <div className="font-medium text-amber-300">{humaniseLabel(g.gapType)}</div>
-                    <div className="text-xs text-neutral-400 mt-0.5">
-                      candidates: <span className="text-neutral-200">{g.candidates.join(', ')}</span> · confidence {g.confidence.toFixed(2)}
+          {tab === 'steward' && (
+            <div className="space-y-px bg-border">
+              {data.pendingActions.length === 0 && (
+                <div className="bg-background p-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  No pending Steward actions · click 'Run Steward tick' to generate some
+                </div>
+              )}
+              {data.pendingActions.map(a => {
+                const approveKey = `s:${a.relationshipId}:${a.timestamp}:approve`;
+                const dismissKey = `s:${a.relationshipId}:${a.timestamp}:dismiss`;
+                const approveBusy = busyId === approveKey;
+                const dismissBusy = busyId === dismissKey;
+                return (
+                  <div key={a.timestamp + a.relationshipId} className="bg-background p-6 md:p-8">
+                    <div className="flex justify-between gap-6 flex-wrap mb-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-xs uppercase tracking-widest text-accent mb-2">
+                          {humaniseLabel(a.action)} · confidence {a.confidence.toFixed(2)}
+                        </div>
+                        <h3 className="font-sans font-bold text-xl md:text-2xl leading-tight tracking-tight">
+                          {a.relationshipLabel}
+                        </h3>
+                      </div>
+                      <div className="flex gap-6 shrink-0">
+                        <DecisionButton
+                          variant="dismiss"
+                          onClick={() => decideSteward(a, 'dismiss')}
+                          disabled={!canApprove || !!busyId}
+                          title={canApprove ? 'Dismiss this proposal' : `Your role (${user?.role}) lacks approve.write`}
+                          busy={dismissBusy}
+                        >
+                          Dismiss
+                        </DecisionButton>
+                        <DecisionButton
+                          variant="approve"
+                          onClick={() => decideSteward(a, 'approve')}
+                          disabled={!canApprove || !!busyId}
+                          title={canApprove ? 'Approve — auto-transitions state for taper/sunset/escalate' : `Your role (${user?.role}) lacks approve.write`}
+                          busy={approveBusy}
+                        >
+                          Approve →
+                        </DecisionButton>
+                      </div>
+                    </div>
+                    <p className="font-sans text-base text-foreground leading-relaxed max-w-3xl">{a.reasoning}</p>
+                    <div className="mt-4">
+                      <CitationChipList citations={a.citations} />
+                    </div>
+                    {(a.action === 'taper' || a.action === 'sunset' || a.action === 'escalate') && (
+                      <div className="mt-4 font-mono text-xs uppercase tracking-widest text-accent">
+                        ⚠ Approving auto-transitions state to <span className="font-bold">{a.action === 'taper' ? 'tapered' : a.action === 'sunset' ? 'closed' : 'escalated'}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {tab === 'cartographer' && (
+            <div className="space-y-px bg-border">
+              {data.gaps.length === 0 && (
+                <div className="bg-background p-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                  No open gaps · click 'Run Cartographer scan' to find some
+                </div>
+              )}
+              {data.gaps.map(g => {
+                const approveKey = `p:${g.proposalId}:approve`;
+                const dismissKey = `p:${g.proposalId}:dismiss`;
+                const approveBusy = busyId === approveKey;
+                const dismissBusy = busyId === dismissKey;
+                return (
+                  <div key={g.proposalId} className="bg-background p-6 md:p-8 relative">
+                    <span className="absolute top-0 left-0 w-12 h-1 bg-accent" />
+                    <div className="flex justify-between gap-6 flex-wrap mb-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-2">
+                          Structural gap · confidence {g.confidence.toFixed(2)}
+                        </div>
+                        <h3 className="font-sans font-bold text-xl md:text-2xl leading-tight tracking-tight text-accent mb-2">
+                          {humaniseLabel(g.gapType)}
+                        </h3>
+                        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                          Candidates · <span className="text-foreground normal-case tracking-normal">{g.candidates.join(', ')}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-6 shrink-0">
+                        <DecisionButton
+                          variant="dismiss"
+                          onClick={() => decideProposal(g, 'dismiss')}
+                          disabled={!canApprove || !!busyId}
+                          title={canApprove ? 'Dismiss this gap' : `Your role (${user?.role}) lacks approve.write`}
+                          busy={dismissBusy}
+                        >
+                          Dismiss
+                        </DecisionButton>
+                        <DecisionButton
+                          variant="approve"
+                          onClick={() => decideProposal(g, 'approve')}
+                          disabled={!canApprove || !!busyId}
+                          title={canApprove ? 'Approve — materialises a Relationship between the candidates' : `Your role (${user?.role}) lacks approve.write`}
+                          busy={approveBusy}
+                        >
+                          Approve →
+                        </DecisionButton>
+                      </div>
+                    </div>
+                    <p className="font-sans text-base text-foreground leading-relaxed max-w-3xl">{g.reasoning}</p>
+                    <p className="mt-3 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                      Expected impact · <span className="text-foreground normal-case tracking-normal">{g.impact}</span>
+                    </p>
+                    <div className="mt-4">
+                      <CitationChipList citations={g.citations} />
                     </div>
                   </div>
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      onClick={() => decideProposal(g, 'dismiss')}
-                      disabled={!canApprove || !!busyId}
-                      title={canApprove ? 'Dismiss this gap' : `Your role (${user?.role}) lacks approve.write`}
-                      className="px-3 py-1 rounded border border-rose-900/60 text-rose-300 hover:bg-rose-950/30 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
-                    >
-                      {dismissBusy && <Spinner />}
-                      Dismiss
-                    </button>
-                    <button
-                      onClick={() => decideProposal(g, 'approve')}
-                      disabled={!canApprove || !!busyId}
-                      title={canApprove ? 'Approve — materialises a Relationship between the candidates' : `Your role (${user?.role}) lacks approve.write`}
-                      className="px-3 py-1 rounded bg-amber-700 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-sm flex items-center gap-1.5"
-                    >
-                      {approveBusy && <Spinner />}
-                      Approve
-                    </button>
-                  </div>
-                </div>
-                <p className="mt-3 text-sm leading-relaxed">{g.reasoning}</p>
-                <p className="mt-2 text-xs text-emerald-300">
-                  <span className="text-emerald-400/80 uppercase tracking-wider text-[10px] mr-1">Expected impact</span>
-                  {g.impact}
-                </p>
-                <CitationChipList citations={g.citations} />
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
-      {/* Persistent modal that opens after a Cartographer proposal is approved.
-          Stays open until the user closes it; the new relationship link CTA
-          dismisses + navigates. */}
       <ApprovalResultModal
         result={approvalResult}
         onClose={() => setApprovalResult(null)}
       />
     </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-5 py-3 -mb-px font-mono text-xs uppercase tracking-widest transition-colors duration-150 border-b-2 ${
+        active ? 'border-accent text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function RunButton({
+  onClick, disabled, title, busy, children,
+}: {
+  onClick: () => void; disabled?: boolean; title?: string; busy?: boolean; children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className="group inline-flex items-center gap-2.5 font-semibold uppercase tracking-wider text-xs text-foreground py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      {busy && <Spinner />}
+      <span className="relative">
+        {children}
+        <span
+          aria-hidden="true"
+          className="absolute -bottom-1 left-0 right-0 h-0.5 bg-foreground transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden"
+          style={{ transformOrigin: 'left center' }}
+        />
+      </span>
+    </button>
+  );
+}
+
+function DecisionButton({
+  variant, onClick, disabled, title, busy, children,
+}: {
+  variant: 'approve' | 'dismiss';
+  onClick: () => void; disabled?: boolean; title?: string; busy?: boolean; children: React.ReactNode;
+}) {
+  const color = variant === 'approve' ? 'text-accent' : 'text-muted-foreground hover:text-foreground';
+  const underline = variant === 'approve' ? 'bg-accent' : 'bg-foreground';
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={`group inline-flex items-center gap-2 font-semibold uppercase tracking-wider text-xs py-2 transition-all duration-150 ease-crisp active:translate-y-px disabled:opacity-40 disabled:cursor-not-allowed ${color}`}
+    >
+      {busy && <Spinner />}
+      <span className="relative">
+        {children}
+        <span
+          aria-hidden="true"
+          className={`absolute -bottom-1 left-0 right-0 h-0.5 ${underline} ${variant === 'approve' ? 'scale-x-100' : 'scale-x-0'} transition-transform duration-150 ease-crisp group-hover:scale-x-110 group-disabled:hidden`}
+          style={{ transformOrigin: 'left center' }}
+        />
+      </span>
+    </button>
   );
 }
