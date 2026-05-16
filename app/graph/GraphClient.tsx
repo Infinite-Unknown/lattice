@@ -113,50 +113,6 @@ export default function GraphClient() {
   }, [hoveredNode, hoveredLink]);
 
   /**
-   * Fit view: scale the camera to include every node currently positioned
-   * in the simulation. Dynamic — no preset padding/zoom; works out the
-   * bounding box of live positions and zooms accordingly.
-   *
-   * Tries the library's zoomToFit first (its built-in is fine when ref
-   * is wired), then falls back to manual centerAt + zoom if the method
-   * isn't reachable on the current ref.
-   */
-  function fitView() {
-    const fg = fgRef.current;
-    if (!data) return;
-
-    // Library-provided fit, if reachable.
-    if (fg && typeof fg.zoomToFit === 'function') {
-      try { fg.zoomToFit(500); return; } catch { /* fall through to manual */ }
-    }
-
-    // Manual fit — compute bounding box of nodes that the simulation has
-    // already placed (x/y are present after first tick).
-    const positioned = (data.nodes as any[]).filter(n => Number.isFinite(n.x) && Number.isFinite(n.y));
-    if (positioned.length === 0 || !fg) return;
-
-    const xs = positioned.map(n => n.x as number);
-    const ys = positioned.map(n => n.y as number);
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
-    const cx = (minX + maxX) / 2;
-    const cy = (minY + maxY) / 2;
-
-    const container = canvasContainerRef.current;
-    const containerW = container?.clientWidth ?? 800;
-    const containerH = container?.clientHeight ?? 600;
-    const dataW = Math.max(maxX - minX, 100);
-    const dataH = Math.max(maxY - minY, 100);
-    // 0.82 leaves a small breathing margin without a fixed pixel padding.
-    const targetZoom = Math.min(containerW / dataW, containerH / dataH) * 0.82;
-
-    try {
-      fg.centerAt?.(cx, cy, 500);
-      fg.zoom?.(targetZoom, 500);
-    } catch { /* swallow — last-resort no-op */ }
-  }
-
-  /**
    * Reset layout: throw away every existing node position and re-run the
    * force simulation from scratch — same effect as refreshing the page,
    * scoped to the graph alone.
@@ -302,9 +258,6 @@ export default function GraphClient() {
           // graph isn't perpetually drifting. Dragging a node naturally
           // re-heats the simulation when needed.
           cooldownTicks={200}
-          // When the initial layout finishes, auto-fit the view so nodes
-          // never start off-screen.
-          onEngineStop={() => fgRef.current?.zoomToFit?.(400, 60)}
         />
 
         {/* Hover tooltip */}
@@ -333,21 +286,11 @@ export default function GraphClient() {
           </div>
         )}
 
-        {/* View controls.
-              ⛶ Fit view     — dynamically scale + center the camera around
-                                the current node bounding box (works even on
-                                nodes that have been dragged off-screen).
-              ⟲ Reset layout — throw away every node position and re-run the
-                                force layout from scratch (page-refresh-shaped,
-                                scoped to the graph only). */}
-        <div className="absolute top-3 left-3 flex gap-1.5 z-10">
-          <button
-            onClick={fitView}
-            title="Scale + centre the camera around all current nodes"
-            className="px-2 py-1 rounded bg-neutral-900/85 hover:bg-neutral-800 backdrop-blur border border-neutral-700 text-xs text-neutral-200 flex items-center gap-1.5"
-          >
-            ⛶ Fit view
-          </button>
+        {/* View control: throw away every node position and re-run the
+            force layout from scratch — page-refresh-shaped, scoped to the
+            graph only. Use this if nodes have drifted off-screen or piled
+            up into a tangle. */}
+        <div className="absolute top-3 left-3 z-10">
           <button
             onClick={resetLayout}
             title="Re-run the force layout from scratch (like refreshing the page)"
