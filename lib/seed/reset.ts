@@ -1,17 +1,17 @@
 /**
  * Destructive reset: wipes every Firestore collection AND every Firebase
- * Auth user, then provisions three root accounts with deliberately
+ * Auth user, then provisions four root accounts with deliberately
  * different example ecosystems so the demo can show variety.
  *
- *   jeff@gmail.com  · password 01234567  · root of 'Hack Garage Accelerator'
- *   bob@gmail.com   · password 01234567  · root of 'Sunrise Ventures'
- *   larry@gmail.com · password 01234567  · root of 'UTM Innovation Hub'
+ *   jeff@gmail.com  · password 01234567  · 'Hack Garage Accelerator' (small healthy)
+ *   bob@gmail.com   · password 01234567  · 'Sunrise Ventures' (escalated mentorship)
+ *   larry@gmail.com · password 01234567  · 'UTM Innovation Hub' (dormant partner)
+ *   billy@gmail.com · password 01234567  · 'Malaysia Tech Ecosystem' (showcase tenant)
  *
- * Each tenant gets 6 entities (2 mentors / 2 companies / 1 programme /
- * 1 partner), 3 relationships in varied states, and 4-5 outcomes that
- * tell a small story. No Steward ticks run automatically — the demo
- * driver clicks 'Run Steward tick' so judges see the agent thinking
- * live.
+ * The first three are intentionally small (6 entities each). Billy's is
+ * the showcase tenant — 12 entities populated with recognisable Malaysian
+ * names (MDEC, 42KL, Sunway iLabs, APU, GDG KL, Carsome, Aerodyne) wired
+ * together so the graph reads as a real ecosystem map.
  *
  *   npm run reset
  */
@@ -353,6 +353,177 @@ function ecosystemForLarry(accountId: string): Bundle {
   return { actors: a, relationships: r, outcomes: o };
 }
 
+function ecosystemForBilly(accountId: string): Bundle {
+  // 'Malaysia Tech Ecosystem' — the showcase tenant. 12 entities with
+  // recognisable Malaysian names (MDEC, 42KL, Sunway iLabs, APU, GDG KL,
+  // Carsome, Aerodyne, PolicyStreet, Naluri) and 8 relationships
+  // showing how the ecosystem actually connects: government agency runs
+  // accelerators, accelerators host startups, partners feed talent in,
+  // mentors advise founders. Designed so /graph reads as a map a judge
+  // recognises.
+  //
+  // Built-in demo hooks:
+  //   - Cheryl Yeoh is over-allocated (5/4) → Cartographer over_allocation
+  //   - APU has zero recent outcomes → Cartographer dormant_partner
+  //   - Naluri ↔ Cheryl is ESCALATED so the agents tab shows urgency
+  const a: Actor[] = [
+    // --- Mentors (3) ---
+    { id: 'billy_m1', account_id: accountId, type: 'mentor', name: "Dato' Yasmin Mahmood",
+      profile: { bio: 'Ex-CEO of MDEC. Advisor on government grants, regional expansion, regulated industries.' },
+      expertise: ['government-relations', 'regional-expansion', 'fintech'],
+      capacity: { allocated_units: 2, max_units: 5 }, status: 'active', created_at: monthsAgo(24) },
+    { id: 'billy_m2', account_id: accountId, type: 'mentor', name: 'Norman Vanhaecke',
+      profile: { bio: 'CEO of Cradle. Seed-stage funding, deal structuring, syndication.' },
+      expertise: ['seed-funding', 'deal-structuring', 'venture-debt'],
+      capacity: { allocated_units: 2, max_units: 5 }, status: 'active', created_at: monthsAgo(20) },
+    { id: 'billy_m3', account_id: accountId, type: 'mentor', name: 'Cheryl Yeoh',
+      profile: { bio: 'Ex-founding CEO of MaGIC. Founder coaching, community building, GTM.' },
+      expertise: ['founder-coaching', 'community-building', 'go-to-market'],
+      capacity: { allocated_units: 5, max_units: 4 }, status: 'active', created_at: monthsAgo(18) }, // over-allocated → cartographer fodder
+
+    // --- Companies (4) ---
+    { id: 'billy_c1', account_id: accountId, type: 'company', name: 'Carsome',
+      profile: { stage: 'unicorn', sector: 'marketplace', focus: 'Used-car cross-border marketplace, MY/ID/TH/SG' },
+      expertise: ['marketplace', 'regional-expansion', 'logistics'],
+      capacity: { allocated_units: 1, max_units: 2 }, status: 'active', created_at: monthsAgo(30) },
+    { id: 'billy_c2', account_id: accountId, type: 'company', name: 'Aerodyne',
+      profile: { stage: 'series-c', sector: 'deeptech', focus: 'Drone-as-a-service for utilities and inspection' },
+      expertise: ['deeptech', 'hardware', 'enterprise-saas'],
+      capacity: { allocated_units: 1, max_units: 3 }, status: 'active', created_at: monthsAgo(26) },
+    { id: 'billy_c3', account_id: accountId, type: 'company', name: 'PolicyStreet',
+      profile: { stage: 'series-a', sector: 'insurtech', focus: 'Embedded insurance for marketplaces and gig platforms' },
+      expertise: ['insurtech', 'regulatory', 'b2b-saas'],
+      capacity: { allocated_units: 2, max_units: 3 }, status: 'active', created_at: monthsAgo(14) },
+    { id: 'billy_c4', account_id: accountId, type: 'company', name: 'Naluri',
+      profile: { stage: 'seed', sector: 'healthtech', focus: 'Digital health coaching for chronic disease' },
+      expertise: ['healthtech', 'b2b-saas', 'behaviour-change'],
+      capacity: { allocated_units: 2, max_units: 2 }, status: 'active', created_at: monthsAgo(10) },
+
+    // --- Programmes (3) ---
+    { id: 'billy_p1', account_id: accountId, type: 'programme', name: 'MDEC GAIN',
+      profile: { sector: 'general', stage: 'growth', focus: 'Global Acceleration & Innovation Network' },
+      expertise: ['government-programme', 'regional-expansion'],
+      capacity: { allocated_units: 3, max_units: 12 }, status: 'active', created_at: monthsAgo(36) },
+    { id: 'billy_p2', account_id: accountId, type: 'programme', name: '42 Kuala Lumpur',
+      profile: { sector: 'talent', focus: 'Peer-to-peer coding school; talent pipeline for the ecosystem' },
+      expertise: ['talent', 'software-engineering'],
+      capacity: { allocated_units: 1, max_units: 8 }, status: 'active', created_at: monthsAgo(28) },
+    { id: 'billy_p3', account_id: accountId, type: 'programme', name: 'Sunway iLabs Accelerator',
+      profile: { sector: 'general', stage: 'seed', focus: 'Sunway-backed seed accelerator at Sunway University' },
+      expertise: ['seed-accelerator', 'university-spinouts'],
+      capacity: { allocated_units: 2, max_units: 10 }, status: 'active', created_at: monthsAgo(22) },
+
+    // --- Partners (2) ---
+    { id: 'billy_pt1', account_id: accountId, type: 'partner', name: 'APU',
+      profile: { type: 'university-partner', focus: 'Asia Pacific University — talent pipeline, joint research' },
+      expertise: ['talent-pipeline', 'research', 'computer-science'],
+      capacity: { allocated_units: 1, max_units: 8 }, status: 'active', created_at: monthsAgo(20) }, // dormant → cartographer fodder
+    { id: 'billy_pt2', account_id: accountId, type: 'partner', name: 'GDG Kuala Lumpur',
+      profile: { type: 'developer-community', focus: 'Google Developer Group KL — events, workshops, GDE pipeline' },
+      expertise: ['developer-community', 'events', 'cloud'],
+      capacity: { allocated_units: 2, max_units: 6 }, status: 'active', created_at: monthsAgo(15) },
+  ];
+
+  const r: Relationship[] = [
+    // Mentor ↔ company axis (3)
+    { id: 'billy_r1', account_id: accountId, type: 'mentorship',
+      parties: ['billy_m1', 'billy_c1'], state: 'active',
+      focus: ['regional-expansion', 'government-relations'], cadence: 'monthly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: "Yasmin is advising Carsome's expansion into Thailand and Indonesia, navigating each market's used-car regulations." },
+      steward_log: [], outcomes: ['billy_o1', 'billy_o2'],
+      created_at: monthsAgo(10), last_steward_run: null },
+    { id: 'billy_r2', account_id: accountId, type: 'mentorship',
+      parties: ['billy_m2', 'billy_c2'], state: 'active',
+      focus: ['series-d-prep', 'enterprise-pipeline'], cadence: 'bi-weekly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'Norman is helping Aerodyne structure their Series D round and prioritising utility enterprise contracts.' },
+      steward_log: [], outcomes: ['billy_o3', 'billy_o4'],
+      created_at: monthsAgo(8), last_steward_run: null },
+    { id: 'billy_r3', account_id: accountId, type: 'mentorship',
+      parties: ['billy_m3', 'billy_c4'], state: 'escalated',
+      focus: ['gtm-pivot', 'b2b-pipeline'], cadence: 'weekly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'Naluri is mid-pivot from B2C to B2B insurer partnerships. Two months without a closed deal. Cheryl pushing for urgency.' },
+      steward_log: [], outcomes: ['billy_o5', 'billy_o6'],
+      created_at: monthsAgo(4), last_steward_run: null },
+
+    // Company ↔ programme axis (3)
+    { id: 'billy_r4', account_id: accountId, type: 'company_in_programme',
+      parties: ['billy_c1', 'billy_p1'], state: 'tapered',
+      focus: ['regional-expansion'], cadence: 'quarterly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'Carsome is a MDEC GAIN alumni — engagement is now quarterly check-ins only.' },
+      steward_log: [], outcomes: ['billy_o7'],
+      created_at: monthsAgo(20), last_steward_run: null },
+    { id: 'billy_r5', account_id: accountId, type: 'company_in_programme',
+      parties: ['billy_c3', 'billy_p3'], state: 'active',
+      focus: ['seed-extension', 'go-to-market'], cadence: 'bi-weekly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'PolicyStreet is in the Sunway iLabs Spring 2026 cohort, raising a seed extension.' },
+      steward_log: [], outcomes: ['billy_o8'],
+      created_at: monthsAgo(3), last_steward_run: null },
+    { id: 'billy_r6', account_id: accountId, type: 'company_in_programme',
+      parties: ['billy_c4', 'billy_p1'], state: 'active',
+      focus: ['regional-expansion', 'b2b-introductions'], cadence: 'monthly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'Naluri joined MDEC GAIN to access B2B insurer introductions across ASEAN.' },
+      steward_log: [], outcomes: ['billy_o9'],
+      created_at: monthsAgo(2), last_steward_run: null },
+
+    // Partner ↔ programme axis (2) — shows the meta-network
+    { id: 'billy_r7', account_id: accountId, type: 'partner_in_initiative',
+      parties: ['billy_pt2', 'billy_p1'], state: 'active',
+      focus: ['developer-events', 'ecosystem-engagement'], cadence: 'monthly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'GDG KL co-hosts monthly developer events for MDEC GAIN alumni. Steady inflow of mid-career engineers.' },
+      steward_log: [], outcomes: ['billy_o10'],
+      created_at: monthsAgo(12), last_steward_run: null },
+    { id: 'billy_r8', account_id: accountId, type: 'partner_in_initiative',
+      parties: ['billy_pt1', 'billy_p2'], state: 'active',
+      focus: ['talent-pipeline', 'campus-recruitment'], cadence: 'quarterly',
+      escalation_policy: DEFAULT_ESCALATION, sunset_policy: DEFAULT_SUNSET,
+      steward_state: { last_run: null, memory_summary: 'APU is the formal university partner for 42KL. No engagement in the last quarter — dormant.' },
+      steward_log: [], outcomes: [], // dormant: no outcomes
+      created_at: monthsAgo(15), last_steward_run: null },
+  ];
+
+  const o: Outcome[] = [
+    { id: 'billy_o1', account_id: accountId, relationship_id: 'billy_r1', type: 'session_held',
+      evidence_text: 'Quarterly review on the Thailand expansion. Yasmin flagged Thai used-vehicle tax structure as the binding constraint.',
+      source: 'admin', verified: true, timestamp: daysAgo(45) },
+    { id: 'billy_o2', account_id: accountId, relationship_id: 'billy_r1', type: 'milestone',
+      evidence_text: 'Carsome Thailand crossed 10k monthly transactions. Country GM reported the regulatory pathway is now clear.',
+      source: 'admin', verified: true, timestamp: daysAgo(12) },
+    { id: 'billy_o3', account_id: accountId, relationship_id: 'billy_r2', type: 'session_held',
+      evidence_text: 'Series D term-sheet review. Norman recommended skipping the strategic lead and going with a financial sponsor for valuation control.',
+      source: 'admin', verified: true, timestamp: daysAgo(18) },
+    { id: 'billy_o4', account_id: accountId, relationship_id: 'billy_r2', type: 'intro_made',
+      evidence_text: 'Norman introduced Aerodyne to Khazanah Nasional for the Series D anchor conversation.',
+      source: 'admin', verified: true, timestamp: daysAgo(7) },
+    { id: 'billy_o5', account_id: accountId, relationship_id: 'billy_r3', type: 'session_held',
+      evidence_text: 'Pipeline review for the B2B pivot. Three insurer conversations stalled — incumbent ops teams reluctant to integrate.',
+      source: 'admin', verified: true, timestamp: daysAgo(38) },
+    { id: 'billy_o6', account_id: accountId, relationship_id: 'billy_r3', type: 'issue',
+      evidence_text: 'Two missed weekly check-ins. CEO reports founder fatigue and confusion on Q3 priorities. Cheryl escalating.',
+      source: 'admin', verified: true, timestamp: daysAgo(5) },
+    { id: 'billy_o7', account_id: accountId, relationship_id: 'billy_r4', type: 'milestone',
+      evidence_text: 'Carsome announced as a MDEC GAIN flagship alumnus at the annual ecosystem report.',
+      source: 'admin', verified: true, timestamp: daysAgo(60) },
+    { id: 'billy_o8', account_id: accountId, relationship_id: 'billy_r5', type: 'milestone',
+      evidence_text: 'PolicyStreet selected for Sunway iLabs Spring 2026. Cohort kickoff held at Sunway University.',
+      source: 'admin', verified: true, timestamp: daysAgo(40) },
+    { id: 'billy_o9', account_id: accountId, relationship_id: 'billy_r6', type: 'intro_made',
+      evidence_text: 'MDEC introduced Naluri to two ASEAN insurer CIOs. First exploratory call scheduled.',
+      source: 'admin', verified: true, timestamp: daysAgo(15) },
+    { id: 'billy_o10', account_id: accountId, relationship_id: 'billy_r7', type: 'session_held',
+      evidence_text: "GDG KL ran 'Cloud Architecture for Scale-ups' workshop at MDEC headquarters. 47 attendees from 12 GAIN alumni companies.",
+      source: 'admin', verified: true, timestamp: daysAgo(22) },
+  ];
+
+  return { actors: a, relationships: r, outcomes: o };
+}
+
 async function seedBundle(b: Bundle, label: string) {
   for (const a of b.actors) await upsertActor(a);
   for (const r of b.relationships) await upsertRelationship(r);
@@ -374,17 +545,20 @@ async function main() {
   const jeffAccount  = await createRoot('jeff@gmail.com',  '01234567', 'Jeff',  'Hack Garage Accelerator');
   const bobAccount   = await createRoot('bob@gmail.com',   '01234567', 'Bob',   'Sunrise Ventures');
   const larryAccount = await createRoot('larry@gmail.com', '01234567', 'Larry', 'UTM Innovation Hub');
+  const billyAccount = await createRoot('billy@gmail.com', '01234567', 'Billy', 'Malaysia Tech Ecosystem');
 
   console.log('\nSeeding ecosystems…');
   await seedBundle(ecosystemForJeff(jeffAccount.id),   `Jeff   / ${jeffAccount.name}`);
   await seedBundle(ecosystemForBob(bobAccount.id),     `Bob    / ${bobAccount.name}`);
   await seedBundle(ecosystemForLarry(larryAccount.id), `Larry  / ${larryAccount.name}`);
+  await seedBundle(ecosystemForBilly(billyAccount.id), `Billy  / ${billyAccount.name}`);
 
   console.log('\n━'.repeat(60));
   console.log('DONE. Sign in with:');
   console.log('  jeff@gmail.com  / 01234567  →  Hack Garage Accelerator');
   console.log('  bob@gmail.com   / 01234567  →  Sunrise Ventures');
   console.log('  larry@gmail.com / 01234567  →  UTM Innovation Hub');
+  console.log('  billy@gmail.com / 01234567  →  Malaysia Tech Ecosystem ★ showcase');
   console.log('━'.repeat(60));
 }
 
