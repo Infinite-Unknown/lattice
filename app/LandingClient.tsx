@@ -11,6 +11,7 @@ export default function LandingClient() {
   const principleRef = useReveal<HTMLElement>();
   const anatomyRef = useReveal<HTMLElement>();
   const proofRef = useReveal<HTMLElement>();
+  const pricingRef = useReveal<HTMLElement>();
   const ctaRef = useReveal<HTMLElement>();
 
   return (
@@ -27,6 +28,9 @@ export default function LandingClient() {
             </Link>
             <Link href="/#how" className="hidden md:inline text-muted-foreground hover:text-foreground transition-colors duration-150">
               How it works
+            </Link>
+            <Link href="/#pricing" className="hidden md:inline text-muted-foreground hover:text-foreground transition-colors duration-150">
+              Pricing
             </Link>
             {!loading && (
               isSignedIn ? (
@@ -239,6 +243,106 @@ export default function LandingClient() {
         </div>
       </section>
 
+      {/* Pricing — per-relationship SaaS model */}
+      <section id="pricing" ref={pricingRef} className="border-b border-border reveal-on-scroll">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-32">
+          <div className="mb-16 md:mb-20">
+            <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
+              Pricing
+            </div>
+            <h2 className="font-sans font-bold text-4xl md:text-6xl lg:text-7xl leading-none tracking-tighter mb-10">
+              Pay per<br /><span className="text-accent">relationship.</span>
+            </h2>
+            <div className="grid lg:grid-cols-12 gap-6 lg:gap-10">
+              <p className="lg:col-span-7 font-sans text-base md:text-lg text-muted-foreground leading-relaxed">
+                One Steward per relationship under management. Cost scales
+                with what you actually run, not seat counts. A 200-relationship
+                ecosystem ticking daily costs roughly the same as one team
+                dinner per month.
+              </p>
+              <div className="lg:col-span-5 lg:text-right font-mono text-xs uppercase tracking-widest text-muted-foreground self-end">
+                14-day trial · no card required<br />cancel any time
+              </div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-px bg-border">
+            <PricingTier
+              name="Pilot"
+              tagline="For one programme, one cohort"
+              price="Free"
+              priceSuffix="14-day trial"
+              ctaLabel="Start free →"
+              ctaHref={isSignedIn ? '/dashboard' : '/sign-up'}
+              features={[
+                'Up to 10 active relationships',
+                'All Steward + Cartographer features',
+                '1 admin seat',
+                'Community support',
+                'Audit log retained 30 days',
+              ]}
+            />
+            <PricingTier
+              name="Operator"
+              tagline="For accelerators and corporate VCs"
+              price="$5"
+              priceSuffix="per relationship / month"
+              priceFloor="$99/mo minimum · 20 relationships floor"
+              ctaLabel="Talk to us →"
+              ctaHref="/sign-up"
+              featured
+              features={[
+                'Unlimited active relationships',
+                'Unlimited admin + IAM seats',
+                'Email support · 24h SLA',
+                'Audit log retained 7 years',
+                'CSV + API export',
+                'Custom escalation policies',
+              ]}
+            />
+            <PricingTier
+              name="Network"
+              tagline="For multi-operator ecosystems"
+              price="Custom"
+              priceSuffix="contact sales"
+              ctaLabel="Contact sales →"
+              ctaHref="mailto:hello@lattice.run"
+              features={[
+                'Everything in Operator',
+                'BorderBridge cross-instance portability',
+                'Verifiable Credentials for outcomes',
+                'Multi-tenant isolation',
+                'Dedicated success manager',
+                'White-label option',
+                'SSO + SCIM',
+              ]}
+            />
+          </div>
+
+          {/* Unit economics — editorial small print */}
+          <div className="mt-16 grid md:grid-cols-3 gap-10 md:gap-6 pt-12 border-t border-border">
+            <UnitEconomic
+              n="01"
+              label="Per-Steward cost"
+              value="≈ $0.001"
+              hint="one Gemini call per heartbeat"
+            />
+            <UnitEconomic
+              n="02"
+              label="200-relationship ecosystem"
+              value="≈ $6/mo"
+              hint="daily heartbeats · LLM cost only"
+            />
+            <UnitEconomic
+              n="03"
+              label="Gross margin"
+              value="≥ 95%"
+              hint="Gemini + Firestore + Cloud Run · all free-tier capable at small scale"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA — inverted (white on near-white) for maximum contrast */}
       <section ref={ctaRef} className="bg-foreground text-background reveal-on-scroll">
         <div className="max-w-5xl mx-auto px-6 md:px-12 lg:px-16 py-24 md:py-40">
@@ -367,6 +471,103 @@ function Step({ n, title, body }: { n: string; title: string; body: string }) {
       <p className="md:col-span-7 font-sans text-base md:text-lg text-muted-foreground leading-relaxed">
         {body}
       </p>
+    </div>
+  );
+}
+
+function PricingTier({
+  name, tagline, price, priceSuffix, priceFloor, features, ctaLabel, ctaHref, featured,
+}: {
+  name: string;
+  tagline: string;
+  price: string;
+  priceSuffix: string;
+  priceFloor?: string;
+  features: string[];
+  ctaLabel: string;
+  ctaHref: string;
+  featured?: boolean;
+}) {
+  const isExternal = ctaHref.startsWith('mailto:') || ctaHref.startsWith('http');
+  const featuredStyle = featured
+    ? { boxShadow: 'inset 0 0 0 2px #FF3D00' }
+    : undefined;
+  const ctaContent = (
+    <span className="relative">
+      {ctaLabel}
+      <span
+        aria-hidden="true"
+        className={`absolute -bottom-1 left-0 right-0 h-0.5 ${featured ? 'bg-accent' : 'bg-foreground'} ${featured ? 'scale-x-100' : 'scale-x-0'} transition-transform duration-150 ease-crisp group-hover:scale-x-110`}
+        style={{ transformOrigin: 'left center' }}
+      />
+    </span>
+  );
+  const ctaClasses = `group inline-flex items-center font-semibold uppercase tracking-wider text-xs py-2 transition-all duration-150 ease-crisp active:translate-y-px ${featured ? 'text-accent' : 'text-foreground'}`;
+
+  return (
+    <div
+      className="relative bg-background p-6 md:p-10 flex flex-col"
+      style={featuredStyle}
+    >
+      {featured && (
+        <span className="absolute -top-3 left-6 md:left-10 bg-accent text-accent-foreground font-mono text-[10px] uppercase tracking-widest px-3 py-1 font-bold">
+          Most popular
+        </span>
+      )}
+
+      <div className="mb-8">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-3">
+          {tagline}
+        </div>
+        <h3 className={`font-sans font-bold text-3xl md:text-4xl leading-none tracking-tighter ${featured ? 'text-accent' : 'text-foreground'}`}>
+          {name}
+        </h3>
+      </div>
+
+      <div className="mb-8 pb-8 border-b border-border">
+        <div className="font-sans font-bold text-5xl md:text-6xl leading-none tracking-tighter text-foreground mb-3">
+          {price}
+        </div>
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          {priceSuffix}
+        </div>
+        {priceFloor && (
+          <div className="font-mono text-xs text-muted-foreground/60 normal-case tracking-normal mt-2">
+            {priceFloor}
+          </div>
+        )}
+      </div>
+
+      <ul className="space-y-3 mb-10 flex-1">
+        {features.map(f => (
+          <li key={f} className="flex gap-3">
+            <span className={`font-mono text-xs pt-0.5 ${featured ? 'text-accent' : 'text-muted-foreground'}`}>+</span>
+            <span className="font-sans text-sm text-foreground leading-snug">{f}</span>
+          </li>
+        ))}
+      </ul>
+
+      {isExternal ? (
+        <a href={ctaHref} className={ctaClasses}>{ctaContent}</a>
+      ) : (
+        <Link href={ctaHref} className={ctaClasses}>{ctaContent}</Link>
+      )}
+    </div>
+  );
+}
+
+function UnitEconomic({ n, label, value, hint }: { n: string; label: string; value: string; hint: string }) {
+  return (
+    <div>
+      <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-3">
+        {n} · {label}
+      </div>
+      <div className="font-sans font-bold text-3xl md:text-4xl leading-none tracking-tighter text-foreground mb-2">
+        {value}
+      </div>
+      <div className="font-mono text-xs text-muted-foreground/70 normal-case tracking-normal">
+        {hint}
+      </div>
     </div>
   );
 }
