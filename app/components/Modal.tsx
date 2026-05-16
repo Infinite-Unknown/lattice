@@ -25,24 +25,26 @@ export default function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 overflow-y-auto py-12 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-background/85 overflow-y-auto py-12 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className={`bg-neutral-950 border border-neutral-800 rounded-lg w-full mx-4 ${width} animate-scale-in`}
+        className={`bg-card border border-border w-full mx-4 ${width} animate-scale-in relative`}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-800">
-          <h2 className="font-semibold text-sm">{title}</h2>
+        {/* Accent bar above title */}
+        <div className="absolute top-0 left-0 w-16 h-1 bg-accent" />
+        <div className="flex items-start justify-between px-6 py-5 border-b border-border">
+          <h2 className="font-sans font-bold text-lg tracking-tight">{title}</h2>
           <button
             onClick={onClose}
-            className="text-neutral-500 hover:text-neutral-200 text-lg leading-none transition-colors duration-150"
+            className="font-mono text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors duration-150 mt-0.5"
             aria-label="Close"
           >
-            ×
+            Close ×
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );

@@ -1,14 +1,9 @@
 'use client';
 
 /**
- * Branded loading indicator: three nodes (emerald/amber/pink) pulsing in
- * sequence with two edges drawing between them. Mirrors the look of
- * /graph so the loading state primes the user for what's coming.
- *
- * Sizes:
- *   sm — 32px (inline / button)
- *   md — 64px (default; data-fetch placeholders)
- *   lg — 96px (full-pane / route loaders)
+ * Branded loading indicator. Three nodes (foreground / accent / foreground)
+ * pulsing in sequence with two edges drawing between them. Aligned with
+ * the Bold Typography palette — vermillion is the only accent.
  */
 export default function LatticeLoader({
   label,
@@ -23,7 +18,7 @@ export default function LatticeLoader({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center gap-3 ${className}`}
+      className={`flex flex-col items-center justify-center gap-4 ${className}`}
       role="status"
       aria-live="polite"
       aria-busy="true"
@@ -36,49 +31,49 @@ export default function LatticeLoader({
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
       >
-        {/* Edge: emerald node → amber node */}
+        {/* Edge: node1 → node2 (foreground stroke) */}
         <line
           x1="14" y1="20" x2="50" y2="20"
-          stroke="#34d399"
+          stroke="#FAFAFA"
           strokeWidth="1.5"
           strokeDasharray="40"
-          strokeLinecap="round"
+          strokeLinecap="butt"
           className="animate-draw-line"
         />
-        {/* Edge: amber node → pink node */}
+        {/* Edge: node2 → node3 (accent stroke) */}
         <line
           x1="50" y1="20" x2="32" y2="48"
-          stroke="#fbbf24"
+          stroke="#FF3D00"
           strokeWidth="1.5"
           strokeDasharray="40"
-          strokeLinecap="round"
+          strokeLinecap="butt"
           className="animate-draw-line"
           style={{ animationDelay: '300ms' }}
         />
-        {/* Node 1 — emerald */}
-        <circle
-          cx="14" cy="20" r="5"
-          fill="#34d399"
+        {/* Node 1 — foreground */}
+        <rect
+          x="9" y="15" width="10" height="10"
+          fill="#FAFAFA"
           className="animate-pulse-dot"
           style={{ transformOrigin: '14px 20px' }}
         />
-        {/* Node 2 — amber */}
-        <circle
-          cx="50" cy="20" r="5"
-          fill="#fbbf24"
+        {/* Node 2 — accent */}
+        <rect
+          x="45" y="15" width="10" height="10"
+          fill="#FF3D00"
           className="animate-pulse-dot"
           style={{ transformOrigin: '50px 20px', animationDelay: '200ms' }}
         />
-        {/* Node 3 — pink */}
-        <circle
-          cx="32" cy="48" r="5"
-          fill="#f472b6"
+        {/* Node 3 — foreground */}
+        <rect
+          x="27" y="43" width="10" height="10"
+          fill="#FAFAFA"
           className="animate-pulse-dot"
           style={{ transformOrigin: '32px 48px', animationDelay: '400ms' }}
         />
       </svg>
       {label && (
-        <div className="text-xs text-neutral-500 tracking-wide">
+        <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
           {label}
         </div>
       )}
