@@ -25,7 +25,8 @@ import { upsertRelationship } from '@/lib/data/relationships';
 import { upsertOutcome } from '@/lib/data/outcomes';
 import { upsertAccount } from '@/lib/data/accounts';
 import { upsertUser } from '@/lib/data/users';
-import type { Account, User } from '@/lib/auth/types';
+import { syntheticEmailForIam } from '@/lib/auth/identity';
+import type { Account, User, Role } from '@/lib/auth/types';
 import type { Actor, Relationship, Outcome } from '@/lib/types';
 
 const COLLECTIONS = [
@@ -131,6 +132,44 @@ async function createRoot(email: string, password: string, name: string, account
   });
   console.log(`  ${email} → ${accountName} (${accountId})`);
   return account;
+}
+
+/**
+ * Provision an IAM user under an existing account. Mirrors the logic in
+ * /api/iam/users POST: mint a Firebase Auth user with a synthetic email
+ * (since IAM users have no real email), write the user doc, set custom
+ * claims so the ID token carries role + account_id.
+ */
+async function createIam(
+  accountId: string,
+  username: string,
+  name: string,
+  password: string,
+  role: Role,
+): Promise<void> {
+  const auth = getAdminAuth();
+  const firebaseEmail = syntheticEmailForIam(accountId, username);
+  const firebaseUser = await auth.createUser({
+    email: firebaseEmail,
+    password,
+    displayName: name,
+    emailVerified: false,
+  });
+  const createdAt = now();
+  const user: User = {
+    id: firebaseUser.uid,
+    account_id: accountId,
+    type: 'iam',
+    username,
+    firebase_email: firebaseEmail,
+    name,
+    role,
+    created_at: createdAt,
+    last_login: null,
+  };
+  await upsertUser(user);
+  await auth.setCustomUserClaims(firebaseUser.uid, { role, account_id: accountId, type: 'iam' });
+  console.log(`    + IAM @${username} (${role}) · ${name}`);
 }
 
 // ---------- per-tenant ecosystems ----------
@@ -553,12 +592,28 @@ async function main() {
   await seedBundle(ecosystemForLarry(larryAccount.id), `Larry  / ${larryAccount.name}`);
   await seedBundle(ecosystemForBilly(billyAccount.id), `Billy  / ${billyAccount.name}`);
 
+  // IAM users under Billy's tenant only — the showcase tenant. Names are
+  // drawn from the Build with AI 2026 KL participant pack so the demo
+  // can show the role gradient (root → admin → approver → viewer) with
+  // people judges recognise from the opening keynotes and problem-statement
+  // contact card.
+  console.log('\nProvisioning IAM users (Billy / Malaysia Tech Ecosystem)…');
+  await createIam(billyAccount.id, 'faiz-hassan',  'Faiz Hassan',   '01234567', 'admin');
+  await createIam(billyAccount.id, 'jeff-sandhu',  'Jeff Sandhu',   '01234567', 'approver');
+  await createIam(billyAccount.id, 'analyst-team', 'Analyst Team',  '01234567', 'viewer');
+
   console.log('\n━'.repeat(60));
-  console.log('DONE. Sign in with:');
+  console.log('DONE. Root sign-ins (email + password):');
   console.log('  jeff@gmail.com  / 01234567  →  Hack Garage Accelerator');
   console.log('  bob@gmail.com   / 01234567  →  Sunrise Ventures');
   console.log('  larry@gmail.com / 01234567  →  UTM Innovation Hub');
   console.log('  billy@gmail.com / 01234567  →  Malaysia Tech Ecosystem ★ showcase');
+  console.log('');
+  console.log('Billy\'s IAM users (sign in with account name + username + password):');
+  console.log('  account: Malaysia Tech Ecosystem');
+  console.log('  @faiz-hassan   / 01234567  · admin     (full operational access)');
+  console.log('  @jeff-sandhu   / 01234567  · approver  (run agents + approve, no policy edit)');
+  console.log('  @analyst-team  / 01234567  · viewer    (read-only)');
   console.log('━'.repeat(60));
 }
 

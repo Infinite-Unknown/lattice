@@ -62,8 +62,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <>
       <nav className="border-b border-border bg-background relative z-40">
         <div className="max-w-7xl mx-auto px-6 md:px-10 py-4 flex items-center gap-8">
+          {/* Logo always routes to the public landing page — when signed in
+              that page surfaces an 'Open dashboard' CTA, so / doubles as a
+              home button and avoids the redundant 'I'm on /dashboard and
+              the logo points to /dashboard' situation. */}
           <Link
-            href="/dashboard"
+            href="/"
             className="font-sans font-bold text-base tracking-tight transition-colors duration-150 hover:text-accent"
           >
             LATTICE
