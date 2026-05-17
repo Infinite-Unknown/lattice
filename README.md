@@ -489,22 +489,84 @@ flowchart TD
 timeline
     title Lattice Roadmap
     MyHack MVP : Live ecosystem graph
-               : Per-edge Stewards (7-action whitelist)
-               : Cartographer (5 gap classes)
-               : Multi-tenant Root + IAM
-               : Audit log + RBAC
+               : Per-edge Stewards with 7-action whitelist
+               : Cartographer with 5 gap classes
+               : Multi-tenant Root and IAM
+               : Audit log and RBAC
                : Bold Typography redesign
-    V1.1 : Real Email / Calendar / Slack dispatch
+    V1.1 : Real Email Calendar Slack dispatch
          : Pre-warmed Gemini cache for instant first-tick
-         : Bulk approve + bulk dismiss
+         : Bulk approve and bulk dismiss
          : Auto-run Steward after Cartographer materialises
     V1.2 : W3C Verifiable Credentials on outcomes
          : Maker-checker queue for regulated deployments
-         : Field-level RBAC (max_units, capacity)
-    V2.0 : BorderBridge — cross-instance relationship portability
+         : Field-level RBAC for max_units and capacity
+    V2.0 : BorderBridge for cross-instance relationship portability
          : Mobile companion app
          : White-label for sovereign ecosystems
 ```
+
+---
+
+## 💰 Pricing & Business Model
+
+Lattice is **per-relationship SaaS** — we charge for the unit of work the
+product actually does, not for seats. Add an edge, we run a Steward on it.
+Close the edge, the next invoice drops. Customers pay for linkages that
+are *actually working* — never for dormant CRM licences.
+
+### Three tiers
+
+| Tier | Price | Includes | Best for |
+|---|---|---|---|
+| **Pilot** | **Free** · 14 days · no card | 10 active relationships · 1 admin seat · all Steward + Cartographer features · 30-day audit retention | One programme, one cohort |
+| **Operator** ⭐ | **From $99/mo** · billed monthly | 20 active relationships included · **+$5/mo per edge** beyond · unlimited admin + IAM seats · 7-year audit retention · CSV + API export · custom escalation policies · email support (24h SLA) | Accelerators, corporate VCs, ecosystem builders |
+| **Network** | **From $999/mo** · annual contract | Everything in Operator · BorderBridge cross-instance portability · W3C Verifiable Credentials · multi-tenant isolation · SSO + SCIM · white-label option · dedicated success manager | Multi-operator ecosystems (Cradle, MDEC, state innovation agencies) |
+
+⭐ = featured tier · the expected mode for paying customers.
+
+### Why per-relationship beats per-seat
+
+- **Aligned to value.** Seat licences punish customers for inviting more
+  admins. Per-relationship licences charge for the thing that makes Lattice
+  valuable — *running more relationships.* Price tracks outcome, not access.
+- **Land-light.** $99 + $5/edge gets a Cohort 1 accelerator live for under
+  $200/mo — below most teams' no-approval budget.
+- **Mechanical expansion.** Cohort 2 doubles the edges; revenue doubles
+  automatically. No upsell motion required.
+- **Sunsetting protects trust.** Customers can taper or close edges any
+  time — their bill drops the same month. We monetise *live* edges, not
+  zombies. That's Cradle's *Lost Intelligence* pain flipped into a
+  revenue-positive habit.
+
+### Unit economics — why ≥95% gross margin holds
+
+| Line | Number | Notes |
+|---|---|---|
+| Per-Steward call cost | **≈ $0.001** | One Gemini 3.1 call per heartbeat |
+| 200-relationship ecosystem · daily heartbeats | **≈ $6/mo** | LLM cost only |
+| Same ecosystem on **Operator** tier | **≈ $999/mo revenue** | $99 base + 180 × $5 |
+| **Gross margin at scale** | **≥ 95%** | Gemini + Firestore + Cloud Run · free-tier capable below ~50 edges |
+
+The cost curve is sub-linear (Gemini batching, embedding caching,
+Cartographer runs once per scan not once per edge). The revenue curve is
+linear in active edges. **Every new relationship is ~95-cents-on-the-dollar
+gross profit.**
+
+### Go-to-market wedge
+
+1. **Network-tier anchors** — Cradle, MDEC GAIN, 42 KL, Sunway iLabs.
+   Five named operators on annual contracts underwrites Year 1.
+2. **Operator-tier volume** — Antler KL, Iterative, 1337 Ventures, regional
+   accelerators. $99–$500/mo bands; many small contracts compound.
+3. **Corporate VC + CSR programmes** — Maybank Foundation, Petronas
+   Ventures, Khazanah Nasional initiatives. Network tier, white-labelled
+   for grant-portfolio governance.
+4. **SEA expansion** — Block71 (ID), NUS Enterprise (SG), QBO (PH).
+   Same product, same unit economics, larger TAM.
+
+> Full pitch-script version with talking points and Q&A paragraph lives in
+> [PITCH.md](PITCH.md) under **Business model — how Lattice profits**.
 
 ---
 
