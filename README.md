@@ -35,7 +35,7 @@ Innovation ecosystems still depend on manual coordination to verify participants
 
 The deployed instance is pre-seeded with the Malaysia ecosystem fixture (30 actors / 18 relationships / 50 outcomes) and ready to drive end-to-end: run a Steward tick, scan with Cartographer, approve a gap, watch the graph update.
 
-### Test accounts
+### Test accounts (Account Name for IAM access: Malaysia Tech Ecosystem)
 
 | Role | Username / Email | Password | Can do |
 |---|---|---|---|
