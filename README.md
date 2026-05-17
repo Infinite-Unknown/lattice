@@ -29,6 +29,25 @@ Innovation ecosystems still depend on manual coordination to verify participants
 
 ---
 
+## 🌐 Live Website
+
+**Try Lattice now → [lattice-green.vercel.app](https://lattice-green.vercel.app/)**
+
+The deployed instance is pre-seeded with the Malaysia ecosystem fixture (30 actors / 18 relationships / 50 outcomes) and ready to drive end-to-end: run a Steward tick, scan with Cartographer, approve a gap, watch the graph update.
+
+### Test accounts
+
+| Role | Username / Email | Password | Can do |
+|---|---|---|---|
+| 🟣 **Root** | `billy@gmail.com` | `01234567` | Everything — IAM, seed, policy, approvals |
+| 🔵 **Admin** | `faiz-hassan` | `01234567` | All except IAM management |
+| 🟢 **Approver** | `jeff-sandhu` | `01234567` | Run Steward + Cartographer, approve/dismiss proposals |
+| ⚪ **Viewer** | `analyst-team` | `01234567` | Read-only — graph, inbox, audit |
+
+> Sign in as **Billy** first to see the full surface (IAM management at `/iam`, seed controls, audit log). Then drop down to a lower role to feel the RBAC boundaries — the same buttons disappear, the same routes 403.
+
+---
+
 ## ✨ Overview
 
 **Lattice** is built for **programme owners and ecosystem administrators** at accelerators, corporate venture arms, university spinout offices, and government agencies like Cradle. We turn manual coordination into governed automation by closing the feedback loop between *what happened* and *what should happen next*:
